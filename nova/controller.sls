@@ -19,7 +19,7 @@ nova_controller_packages:
   - names: {{ controller.pkgs }}
 
 {%- if not salt['user.info']('nova') %}
-user_nova:
+nova_controller__user_nova:
   user.present:
   - name: nova
   - home: /var/lib/nova
@@ -30,13 +30,13 @@ user_nova:
   - require_in:
     - pkg: nova_controller_packages
 
-group_nova:
+nova_controller__group_nova:
   group.present:
     - name: nova
     - gid: 303
     - system: True
     - require_in:
-      - user: user_nova
+      - user: nova_controller__user_nova
 {%- endif %}
 
 {%- if controller.get('networking', 'default') == "contrail" and controller.version == "juno" %}
@@ -49,7 +49,7 @@ contrail_nova_packages:
 
 {%- endif %}
 
-/etc/nova/nova.conf:
+nova_controller__/etc/nova/nova.conf:
   file.managed:
   - source: salt://nova/files/{{ controller.version }}/nova-controller.conf.{{ grains.os_family }}
   - template: jinja
@@ -71,7 +71,7 @@ nova_controller_syncdb:
     - nova-manage api_db sync
     {%- endif %}
   - require:
-    - file: /etc/nova/nova.conf
+    - file: nova_controller__/etc/nova/nova.conf
 
 nova_controller_services:
   service.running:
@@ -80,7 +80,7 @@ nova_controller_services:
   - require:
     - cmd: nova_controller_syncdb
   - watch:
-    - file: /etc/nova/nova.conf
+    - file: nova_controller__/etc/nova/nova.conf
     - file: /etc/nova/api-paste.ini
 
 {%- endif %}

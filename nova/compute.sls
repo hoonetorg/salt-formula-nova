@@ -31,7 +31,7 @@ vm.swappiness:
 
 
 {%- if not salt['user.info']('nova') %}
-user_nova:
+nova_compute__user_nova:
   user.present:
   - name: nova
   - home: /var/lib/nova
@@ -54,13 +54,13 @@ user_nova:
     - file: /var/lib/nova/.ssh/id_rsa
     {%- endif %}
 
-group_nova:
+nova_compute__group_nova:
   group.present:
     - name: nova
     - gid: 303
     - system: True
     - require_in:
-      - user: user_nova
+      - user: nova_compute__user_nova
 {%- endif %}
 
 {%- if compute.user is defined %}
@@ -97,9 +97,9 @@ user_nova_bash:
 
 {%- endif %}
 
-{%- if pillar.nova.controller is not defined %}
+{#- if pillar.nova.controller is not defined #}
 
-/etc/nova/nova.conf:
+nova_compute__/etc/nova/nova.conf:
   file.managed:
   - source: salt://nova/files/{{ compute.version }}/nova-compute.conf.{{ grains.os_family }}
   - template: jinja
@@ -111,7 +111,7 @@ nova_compute_services:
   - enable: true
   - names: {{ compute.services }}
   - watch:
-    - file: /etc/nova/nova.conf
+    - file: nova_compute__/etc/nova/nova.conf
 
 {%- if compute.virtualization == 'kvm' %}
 
@@ -185,6 +185,6 @@ virsh net-undefine default:
 
 {%- endif %}
 
-{%- endif %}
+{#- endif #}
 
 {%- endif %}

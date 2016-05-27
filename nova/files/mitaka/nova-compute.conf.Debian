@@ -1,63 +1,103 @@
-{%- from "nova/map.jinja" import compute with context %}
-
+{%- from "nova/map.jinja" import compute with context -%}
 [DEFAULT]
-dhcpbridge_flagfile=/etc/nova/nova.conf
-dhcpbridge=/usr/bin/nova-dhcpbridge
-logdir=/var/log/nova
-state_path=/var/lib/nova
-force_dhcp_release=True
-iscsi_helper=tgtadm
-connection_type=libvirt
-root_helper=sudo nova-rootwrap /etc/nova/rootwrap.conf
-verbose=True
-api_paste_config=/etc/nova/api-paste.ini
-volumes_path=/var/lib/nova/volumes
-enabled_apis=osapi_compute,metadata
 
+
+#l192
+state_path = /var/lib/nova
+#l255
+report_interval = 5
+#l265
+enabled_apis = osapi_compute,metadata
+
+
+
+
+
+
+
+
+#l328
+service_down_time = 90
+
+
+#l380
+auth_strategy = keystone
+#l430
 use_neutron = True
-
-{%- if compute.image.use_cow is defined %}
-use_cow_images = {{ compute.image.use_cow }}
-{%- endif %}
-
+#l461
+resume_guests_state_on_host_boot = True
+#l492
+live_migration_retry_count = 30
+#l514
+block_device_allocate_retries=600
+#l555
+block_device_allocate_retries_interval=10
+#l531
+heal_instance_info_cache_interval = {{ compute.heal_instance_info_cache_interval }}
+#duplicate#heal_instance_info_cache_interval = 0
+#l621
 {%- if compute.reserved_host_memory_mb is defined %}
 reserved_host_memory_mb = {{ compute.reserved_host_memory_mb }}
 {%- endif %}
+#l645
 
-allow_resize_to_same_host=True
 
-{%- if compute.ceph.ephemeral is defined %}
-live_migration_flag="VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE,VIR_MIGRATE_PERSIST_DEST,VIR_MIGRATE_TUNNELLED"
-{%- else %}
-live_migration_flag=VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE
-{%- endif %}
-live_migration_retry_count=30
 
-auth_strategy = keystone
-libvirt_nonblocking = True
 
-neutron_url_timeout = 300
+
+
+#l701
+allow_resize_to_same_host = True
+
+
+
+
+
+#l1419
 compute_driver = libvirt.LibvirtDriver
+#l1483
+{%- if compute.image.use_cow is defined %}
+use_cow_images = {{ compute.image.use_cow }}
+{%- endif %}
+#l1511
 
-heal_instance_info_cache_interval = {{ compute.heal_instance_info_cache_interval }}
 
-heal_instance_info_cache_interval = 0
-image_cache_manager_interval = 0
+
+#l1559
 firewall_driver = nova.virt.firewall.NoopFirewallDriver
-glance_port = 9292
-glance_num_retries = 10
 
 
+
+#l1627
+api_paste_config=/etc/nova/api-paste.ini
+#l1737
+dhcpbridge_flagfile = /etc/nova/nova.conf
+#l1746
+dhcpbridge = /usr/bin/nova-dhcpbridge
+#l1884
+force_dhcp_release = True
+#l1929
+image_cache_manager_interval = 0
+#l1949
+{%- if conmpute.debug %}
+debug = True
+{%- else %}
+debug = False
+{%- endif %}
+#l1955
+verbose = True
+#l1980
+log_dir = /var/log/nova
+#l2075
 rpc_cast_timeout = 30
-rpc_response_timeout = 3600
+
+
+#l2105
 executor_thread_pool_size = 70
-report_interval = 5
+#l2108
+rpc_response_timeout = 3600
 
-block_device_allocate_retries=600
-block_device_allocate_retries_interval=10
 
-resume_guests_state_on_host_boot = True
-service_down_time = 90
 
 {% if pillar.ceilometer is defined %}
 
@@ -67,101 +107,216 @@ notify_on_state_change = vm_and_task_state
 
 {% endif %}
 
-[oslo_concurrency]
-lock_path = /var/lib/nova/tmp
+#must be deprecated
+#moved to cinder?
 
-[oslo_messaging_notifications]
-{%- if compute.notification is defined %}
-driver = messagingv2
-{%- endif %}
+#volumes_path=/var/lib/nova/volumes
 
-[vnc]
-enabled = true
-novncproxy_base_url={{ compute.vncproxy_url }}/vnc_auto.html
-novncproxy_port={{ compute.bind.vnc_port }}
-vncserver_listen=0.0.0.0
-vncserver_proxyclient_address={{ compute.bind.vnc_address }}
+#iscsi_helper=tgtadm
+#?
+#libvirt_nonblocking = True
+#connection_type = libvirt
+#root_helper=sudo nova-rootwrap /etc/nova/rootwrap.conf
 
-[spice]
-enabled = false
-html5proxy_base_url = {{ compute.vncproxy_url }}/spice_auto.html
+
+
+
+#deprecated in favor of [glance]:port
+#glance_port = 9292
+#deprecated in favor of [libvirt]:live_migration_flag
+#{%- if compute.ceph.ephemeral is defined %}
+#live_migration_flag="VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE,VIR_MIGRATE_PERSIST_DEST,VIR_MIGRATE_TUNNELLED"
+#{%- else %}
+#live_migration_flag=VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE
+#{%- endif %}
+
+
+
+#deprecated in favor of [neutron]:timeout
+#neutron_url_timeout = 300
+
 
 [cache]
 {%- if compute.cache is defined %}
+#l2260
 enabled = true
-memcached_servers={%- for member in compute.cache.members %}{{ member.host }}:11211{% if not loop.last %},{% endif %}{%- endfor %}
+#wrong option in [cache] section
+#memcached_servers={%- for member in compute.cache.members %}{{ member.host }}:11211{% if not loop.last %},{% endif %}{%- endfor %}
+#l2270
+memcache_servers={%- for member in compute.cache.members %}{{ member.host }}:11211{% if not loop.last %},{% endif %}{%- endfor %}
 {%- endif %}
 
-[libvirt]
-inject_partition = -1
-use_usb_tablet = True
-cpu_mode = host-passthrough
-virt_type = kvm
-use_virtio_for_bridges = True
+
+[cinder]
+#l2995
+catalog_info=volumev2:cinderv2:internalURL
+#l3002
+os_region_name = {{ compute.identity.region }}
+
+
+[glance]
+#l3330
+host = {{ compute.image.host }}
+#l3338
+port = 9292
+#l3359
+num_retries = 10
 
 [keystone_authtoken]
-signing_dirname=/tmp/keystone-signing-nova
+#l3527
+auth_uri=http://{{ compute.identity.host }}:5000
+#not in template
+auth_url=http://{{ compute.identity.host }}:35357
+#correct name seems to be signing_dir
+#signing_dirname=/tmp/keystone-signing-nova
+#l3564
+signing_dir=/tmp/keystone-signing-nova
+{%- if compute.cache is defined %}
+#l3569
+memcached_servers={%- for member in compute.cache.members %}{{ member.host }}:11211{% if not loop.last %},{% endif %}{%- endfor %}
+{%- endif %}
+#l3580
 revocation_cache_time = 10
+#l3618
 auth_type = password
+#not in template
 user_domain_id = {{ compute.identity.get('domain', 'default') }}
 project_domain_id = {{ compute.identity.get('domain', 'default') }}
 project_name = {{ compute.identity.tenant }}
 username = {{ compute.identity.user }}
 password = {{ compute.identity.password }}
-auth_uri=http://{{ compute.identity.host }}:5000
-auth_url=http://{{ compute.identity.host }}:35357
-{%- if compute.cache is defined %}
-memcached_servers={%- for member in compute.cache.members %}{{ member.host }}:11211{% if not loop.last %},{% endif %}{%- endfor %}
+
+[libvirt]
+#l3672
+virt_type = kvm
+#l3686
+inject_partition = -1
+#l3689
+use_usb_tablet = True
+#l3707
+{%- if compute.ceph.ephemeral is defined %}
+live_migration_flag="VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE,VIR_MIGRATE_PERSIST_DEST,VIR_MIGRATE_TUNNELLED"
+{%- else %}
+live_migration_flag=VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE
+{%- endif %}
+#l3778
+cpu_mode = host-passthrough
+#l3886
+use_virtio_for_bridges = True
+
+{%- if compute.ceph.ephemeral is defined %}
+#l3831
+images_type=rbd
+#l3842
+images_rbd_pool={{ compute.ceph.rbd_pool }}
+#l3845
+images_rbd_ceph_conf=/etc/ceph/ceph.conf
+#l3921
+rbd_user={{ compute.ceph.rbd_user }}
+#l3924
+rbd_secret_uuid={{ compute.ceph.secret_uuid }}
+#deprecated: should be inject_password
+#libvirt_inject_password=false
+#l3679
+inject_password=false
+#deprecated: should be inject_key
+#libvirt_inject_key=false
+#l3682
+inject_key=false
+#deprecated: should be inject_partition
+#libvirt_inject_partition=-2
+#l3686
+inject_partition=-2
+{%- endif %}
+
+[neutron]
+
+
+
+
+
+#l4145
+url=http://{{ compute.network.host }}:{{ compute.network.port }}
+#l4161
+auth_url = http://{{ compute.identity.host }}:{{ compute.identity.port }}
+#l4165
+auth_type = password
+#l4205
+project_domain_name = default
+#l4223
+timeout = 300
+#l4232
+user_domain_name = default
+#l4148
+region_name= {{ compute.network.region }}
+#l4199
+password={{ compute.network.password }}
+#l4213
+project_name={{ compute.identity.tenant }}
+#l4239
+username={{ compute.network.user }}
+
+[oslo_concurrency]
+#l4296
+lock_path = /var/lib/nova/tmp
+
+[oslo_messaging_notifications]
+{%- if compute.notification is defined %}
+#l4379
+driver = messagingv2
 {%- endif %}
 
 [oslo_messaging_rabbit]
 {%- if compute.message_queue.members is defined %}
+#l4457
 rabbit_hosts = {% for member in compute.message_queue.members -%}
                    {{ member.host }}:{{ member.get('port', 5672) }}
                    {%- if not loop.last -%},{%- endif -%}
                {%- endfor -%}
 {%- else %}
+#l4447
 rabbit_host = {{ compute.message_queue.host }}
+#l4453
 rabbit_port = {{ compute.message_queue.port }}
 {%- endif %}
-
+#l4465
 rabbit_userid = {{ compute.message_queue.user }}
+#l4469
 rabbit_password = {{ compute.message_queue.password }}
+#l4477
 rabbit_virtual_host = {{ compute.message_queue.virtual_host }}
+
+#FIXMEseems to be in [default] section which must be wrong #l2044
 rpc_conn_pool_size = 300
+
+#l4480
 rabbit_retry_interval = 1
+#l4485
 rabbit_retry_backoff = 2
 
-[glance]
-
-host = {{ compute.image.host }}
-
-[neutron]
-username={{ compute.network.user }}
-password={{ compute.network.password }}
-project_name={{ compute.identity.tenant }}
-auth_url=http://{{ compute.identity.host }}:{{ compute.identity.port }}
-url=http://{{ compute.network.host }}:{{ compute.network.port }}
-region_name= {{ compute.network.region }}
-auth_type = password
-project_domain_name = default
-user_domain_name = default
-
-[cinder]
-os_region_name = {{ compute.identity.region }}
-catalog_info=volumev2:cinderv2:internalURL
-
-{%- if compute.ceph.ephemeral is defined %}
-[libvirt]
-images_type=rbd
-images_rbd_pool={{ compute.ceph.rbd_pool }}
-images_rbd_ceph_conf=/etc/ceph/ceph.conf
-rbd_user={{ compute.ceph.rbd_user }}
-rbd_secret_uuid={{ compute.ceph.secret_uuid }}
-libvirt_inject_password=false
-libvirt_inject_key=false
-libvirt_inject_partition=-2
-{%- endif %}
+[spice]
+#l4850
+html5proxy_base_url = {{ compute.vncproxy_url }}/spice_auto.html
+#l4860
+enabled = false
 
 [vnc]
+#l5374
+enabled = true
+#l5397
 keymap = {{ compute.get('vnc_keymap', 'en-us') }}
+
+#l5416
+vncserver_listen=0.0.0.0
+#l5440
+vncserver_proxyclient_address={{ compute.bind.vnc_address }}
+
+
+
+
+
+
+#l5494
+novncproxy_port={{ compute.bind.vnc_port }}
+#l5521
+novncproxy_base_url={{ compute.vncproxy_url }}/vnc_auto.html

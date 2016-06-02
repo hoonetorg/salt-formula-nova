@@ -18,27 +18,6 @@ nova_controller_packages:
   pkg.installed:
   - names: {{ controller.pkgs }}
 
-{%- if not salt['user.info']('nova') %}
-nova_controller__user_nova:
-  user.present:
-  - name: nova
-  - home: /var/lib/nova
-  - shell: /bin/false
-  - uid: 303
-  - gid: 303
-  - system: True
-  - require_in:
-    - pkg: nova_controller_packages
-
-nova_controller__group_nova:
-  group.present:
-    - name: nova
-    - gid: 303
-    - system: True
-    - require_in:
-      - user: nova_controller__user_nova
-{%- endif %}
-
 {%- if controller.get('networking', 'default') == "contrail" and controller.version == "juno" %}
 
 contrail_nova_packages:

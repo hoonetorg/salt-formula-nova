@@ -1,0 +1,344 @@
+{%- from "nova/map.jinja" import controller with context -%}
+[DEFAULT]
+#l141
+my_ip={{ controller.bind.private_address }}
+#l192
+state_path = /var/lib/nova
+#l255
+report_interval = 5
+#l265
+enabled_apis = osapi_compute,metadata
+#l271
+osapi_compute_listen={{ controller.bind.private_address }}
+#l280
+osapi_compute_workers = {{ controller.workers }}
+#l288
+metadata_listen={{ controller.bind.private_address }}
+#l297
+metadata_workers = {{ controller.workers }}
+
+
+#l350
+rootwrap_config = /etc/nova/rootwrap.conf
+#l380
+auth_strategy = keystone
+#l430
+use_neutron = True
+
+
+
+
+#l514
+block_device_allocate_retries=600
+#l555
+block_device_allocate_retries_interval=10
+
+
+
+
+
+
+#l645
+cpu_allocation_ratio = {{ controller.cpu_allocation_ratio }}
+#l653
+ram_allocation_ratio = {{ controller.ram_allocation_ratio }}
+#l665
+disk_allocation_ratio = {{ controller.disk_allocation_ratio }}
+#l701
+allow_resize_to_same_host = True
+#was duplicate in template#allow_resize_to_same_host=True
+#l965
+scheduler_default_filters = {{ controller.scheduler_default_filters }}
+#l1070
+scheduler_driver = filter_scheduler
+#l1419
+compute_driver = libvirt.LibvirtDriver
+
+
+
+
+#l1511
+vif_plugging_is_fatal = False
+#l1532
+vif_plugging_timeout = 0
+#l1559
+firewall_driver = nova.virt.firewall.NoopFirewallDriver
+#duplicate on nova.conf for controller#firewall_driver = nova.virt.firewall.NoopFirewallDriver
+#l1611
+injected_network_template = /usr/share/nova/interfaces.template
+#l1627
+api_paste_config=/etc/nova/api-paste.ini
+#l1737
+dhcpbridge_flagfile = /etc/nova/nova.conf
+#l1746
+dhcpbridge = /usr/bin/nova-dhcpbridge
+#l1884
+force_dhcp_release = True
+
+
+#l1949
+{%- if controller.debug %}
+debug = True
+{%- else %}
+debug = False
+{%- endif %}
+#l1955
+verbose = True
+#l1980
+log_dir = /var/log/nova
+#l2075
+rpc_cast_timeout = 30
+#deprecated in favor of executor_thread_pool_size
+#rpc_thread_pool_size = 70
+#l2105
+executor_thread_pool_size = 70
+#l2108
+rpc_response_timeout = 3600
+#l2117
+rpc_backend = rabbit
+
+
+#must be deprecated 
+#moved to cinder?
+#volumes_dir = /etc/nova/volumes
+
+#osapi_volume_listen={{ controller.bind.private_address }}
+#iscsi_helper=tgtadm
+#?
+#libvirt_nonblocking = True
+#connection_type = libvirt
+#root_helper=sudo nova-rootwrap /etc/nova/rootwrap.conf
+#removed in 2013#https://github.com/openstack/nova/commit/c21cbe8cd59bffe9b3d1fe9d9f4a8dc3da8cf313
+#start_guests_on_host_boot=true
+#deprecated in favor of [glance]:host
+#glance_host = {{ controller.glance.host }}
+
+
+
+
+
+
+
+#deprecated in favor of [neutron]:metadata_proxy_shared_secret
+#{%- if controller.get('networking', 'default') != "contrail" %}
+#neutron_metadata_proxy_shared_secret={{ controller.metadata.password }}
+#{%- endif %}
+
+[api_database]
+#l2166
+connection = {{ controller.database.engine }}+pymysql://{{ controller.database.user }}:{{ controller.database.password }}@{{ controller.database.host }}/{{ controller.database.name }}_api
+#l2182
+idle_timeout = 180
+#l2185
+max_pool_size = 700
+#l2189
+max_retries = -1
+#l2192
+retry_interval = 5
+#l2195
+max_overflow = 100
+#l2199
+connection_debug = 10
+#l2205
+pool_timeout = 120
+
+#not existing in api_database
+#min_pool_size = 100
+#db_max_retries = 3
+#db_retry_interval = 1
+
+
+
+[cache]
+{%- if controller.cache is defined %}
+#l2260
+enabled = true
+#wrong option in [cache] section
+#memcached_servers={%- for member in controller.cache.members %}{{ member.host }}:11211{% if not loop.last %},{% endif %}{%- endfor %}
+#l2270
+memcache_servers={%- for member in controller.cache.members %}{{ member.host }}:11211{% if not loop.last %},{% endif %}{%- endfor %}
+{%- endif %}
+
+
+[cinder]
+#l2995
+catalog_info=volumev2:cinderv2:internalURL
+#l3002
+os_region_name = {{ controller.identity.region }}
+
+
+[conductor]
+#l3044
+workers = {{ controller.workers }}
+
+
+[database]
+#l3126 and l3223
+connection = {{ controller.database.engine }}+pymysql://{{ controller.database.user }}:{{ controller.database.password }}@{{ controller.database.host }}/{{ controller.database.name }}
+#l3142 and l3239
+idle_timeout = 180
+#l3147 and l3242
+min_pool_size = 100
+#l3152 and l3249
+max_pool_size = 700
+#l3158 and l3255
+max_retries = -1
+#l3163 and l3260
+retry_interval = 5
+#l3168 and l3265
+max_overflow = 100
+#l3173 and l3270
+connection_debug = 10
+#l3181 and l3278
+pool_timeout = 120
+#l3188 and l3285
+db_retry_interval = 1
+#l3200 and l3297
+db_max_retries = 3
+
+[glance]
+#l3330
+host = {{ controller.glance.host }}
+#l3338
+
+[keystone_authtoken]
+#l3527
+auth_uri=http://{{ controller.identity.host }}:5000
+#not in template
+auth_url=http://{{ controller.identity.host }}:35357
+
+
+#l3564
+signing_dir=/tmp/keystone-signing-nova
+{%- if controller.cache is defined %}
+#l3569
+memcached_servers={%- for member in controller.cache.members %}{{ member.host }}:11211{% if not loop.last %},{% endif %}{%- endfor %}
+{%- endif %}
+#l3580
+revocation_cache_time = 10
+#l3618
+auth_type = password
+#not in template
+user_domain_id = {{ controller.identity.get('domain', 'default') }}
+project_domain_id = {{ controller.identity.get('domain', 'default') }}
+project_name = {{ controller.identity.tenant }}
+username = {{ controller.identity.user }}
+password = {{ controller.identity.password }}
+
+[libvirt]
+#l3672
+virt_type = kvm
+#l3686
+inject_partition = -1
+#l3689
+use_usb_tablet = True
+
+
+
+
+
+
+#l3778
+cpu_mode = host-passthrough
+#l3886
+use_virtio_for_bridges = True
+
+[neutron]
+#l4135
+service_metadata_proxy=True
+#l4138
+{%- if controller.get('networking', 'default') != "contrail" %}
+metadata_proxy_shared_secret={{ controller.metadata.password }}
+{%- endif %}
+
+#l4145
+url=http://{{ controller.network.host }}:{{ controller.network.port }}
+#l4161
+auth_url = http://{{ controller.identity.host }}:35357
+#l4165
+auth_type = password
+#l4205
+project_domain_name = default
+
+
+#l4232
+user_domain_name = default
+{% if pillar.neutron is defined %}
+#l4148
+region_name= {{ pillar.neutron.server.identity.region }}
+#l4199
+password={{ pillar.neutron.server.identity.password }}
+#l4213
+project_name={{ pillar.neutron.server.identity.tenant }}
+#l4239
+username={{ pillar.neutron.server.identity.user }}
+{%- else %}
+#l4148
+region_name= {{ controller.network.region }}
+#l4199
+password={{ controller.network.password }}
+#l4213
+project_name={{ controller.network.tenant }}
+#l4239
+username={{ controller.network.user }}
+{%- endif %}
+
+
+[oslo_concurrency]
+#l4296
+lock_path = /var/lib/nova/tmp
+
+[oslo_messaging_rabbit]
+{%- if controller.message_queue.members is defined %}
+#l4457
+rabbit_hosts = {% for member in controller.message_queue.members -%}
+                   {{ member.host }}:{{ member.get('port', 5672) }}
+                   {%- if not loop.last -%},{%- endif -%}
+               {%- endfor -%}
+{%- else %}
+#l4447
+rabbit_host = {{ controller.message_queue.host }}
+#l4453
+rabbit_port = {{ controller.message_queue.port }}
+{%- endif %}
+#l4465
+rabbit_userid = {{ controller.message_queue.user }}
+#l4469
+rabbit_password = {{ controller.message_queue.password }}
+#l4477
+rabbit_virtual_host = {{ controller.message_queue.virtual_host }}
+
+#FIXMEseems to be in [default] section which must be wrong #l2044
+rpc_conn_pool_size = 300
+
+#l4480
+rabbit_retry_interval = 1
+#l4485
+rabbit_retry_backoff = 2
+
+[spice]
+#l4850
+html5proxy_base_url = {{ controller.vncproxy_url }}/spice_auto.html
+#l4860
+enabled = false
+
+[vnc]
+#l5374
+enabled = true
+#l5397
+keymap = {{ controller.get('vnc_keymap', 'en-us') }}
+{%- if pillar.nova.compute is defined %}
+#l5416
+vncserver_listen={{ controller.bind.private_address }}
+#l5440
+vncserver_proxyclient_address={{ controller.bind.private_address }}
+{%- else %}
+#l5416
+vncserver_listen=0.0.0.0
+{%- endif %}
+#l5466
+novncproxy_host = 0.0.0.0
+#l5494
+novncproxy_port={{ controller.bind.get('vncproxy_port', '6080') }}
+#l5521
+novncproxy_base_url = {{ controller.vncproxy_url }}/vnc_auto.html

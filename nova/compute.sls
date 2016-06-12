@@ -33,6 +33,7 @@ vm.swappiness:
 
 nova_compute__/etc/nova/nova.conf:
   file.managed:
+  - name: /etc/nova/nova.conf
   - source: salt://nova/files/{{ compute.version }}/nova-compute.conf.{{ grains.os_family }}
   - template: jinja
   - require:

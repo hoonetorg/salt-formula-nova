@@ -30,6 +30,7 @@ contrail_nova_packages:
 
 nova_controller__/etc/nova/nova.conf:
   file.managed:
+  - name: /etc/nova/nova.conf
   - source: salt://nova/files/{{ controller.version }}/nova-controller.conf.{{ grains.os_family }}
   - template: jinja
   - require:

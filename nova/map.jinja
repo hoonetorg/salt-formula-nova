@@ -5,6 +5,46 @@
     'vnc_protocol': 'http',
 } %}
 
+#openstack-nova-common: useradd -u 162 -r -g nova -G nova,nobody -d /var/lib/nova -s /sbin/nologin -c "OpenStack Nova Daemons" nova
+#openstack-nova-compute: usermod -a -G qemu nova
+#nova:x:162:162:OpenStack Nova Daemons:/var/lib/nova:/sbin/nologin
+#nobody:x:99:nova
+#qemu:x:107:nova
+#nova:x:162:nova
+{% set user = salt['grains.filter_by']({
+    'Debian': {
+        'group': {
+          'name': 'nova',
+          'gid': '303',
+          'name_virt': 'libvirtd',
+        },
+        'user': {
+          'name': 'nova',
+          'uid': '303',
+          'home': '/var/lib/nova',
+          'shell': '/bin/false',
+          'fullname': 'OpenStack Glance Daemons',
+          'groups_common': ['nova'],
+        },
+    },
+    'RedHat': {
+        'group': {
+          'name': 'nova',
+          'gid': '162',
+          'name_virt': 'qemu',
+          'gid_virt': '107',
+        },
+        'user': {
+          'name': 'nova',
+          'uid': '162',
+          'home': '/var/lib/nova',
+          'shell': '/sbin/nologin',
+          'fullname': 'OpenStack Nova Daemons',
+          'groups_common': ['nobody', 'nova'],
+        },
+    },
+}, merge=salt['pillar.get']('nova:user')) %}
+
 {% set controller = salt['grains.filter_by']({
     'Debian': {
         'pkgs': ['nova-novncproxy', 'novnc', 'nova-api', 'nova-ajax-console-proxy', 'nova-cert', 'nova-conductor', 'nova-consoleauth', 'nova-doc', 'nova-scheduler', 'python-novaclient', 'python-memcache'],

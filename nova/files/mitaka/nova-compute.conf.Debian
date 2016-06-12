@@ -79,7 +79,7 @@ force_dhcp_release = True
 #l1929
 image_cache_manager_interval = 0
 #l1949
-{%- if conmpute.debug %}
+{%- if compute.debug %}
 debug = True
 {%- else %}
 debug = False

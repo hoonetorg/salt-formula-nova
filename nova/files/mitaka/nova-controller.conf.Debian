@@ -48,7 +48,9 @@ disk_allocation_ratio = {{ controller.disk_allocation_ratio }}
 allow_resize_to_same_host = True
 #was duplicate in template#allow_resize_to_same_host=True
 #l965
+{% if controller.get('scheduler_default_filters', False) %}
 scheduler_default_filters = {{ controller.scheduler_default_filters }}
+{% endif %}
 #l1070
 scheduler_driver = filter_scheduler
 #l1419

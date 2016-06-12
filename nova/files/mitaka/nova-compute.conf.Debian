@@ -151,7 +151,9 @@ memcache_servers={%- for member in compute.cache.members %}{{ member.host }}:112
 #l2995
 catalog_info=volumev2:cinderv2:internalURL
 #l3002
+{%- if compute.get('identity', {}).get('region', False) %}
 os_region_name = {{ compute.identity.region }}
+{%- endif %}
 
 
 [glance]
@@ -248,7 +250,9 @@ timeout = 300
 #l4232
 user_domain_name = default
 #l4148
+{%- if compute.get('network', {}).get('region', False) %}
 region_name= {{ compute.network.region }}
+{%- endif %}
 #l4199
 password={{ compute.network.password }}
 #l4213

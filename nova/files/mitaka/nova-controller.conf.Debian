@@ -166,7 +166,9 @@ memcache_servers={%- for member in controller.cache.members %}{{ member.host }}:
 #l2995
 catalog_info=volumev2:cinderv2:internalURL
 #l3002
+{%- if controller.get('identity', {}).get('region', False) %}
 os_region_name = {{ controller.identity.region }}
+{%- endif %}
 
 
 [conductor]
@@ -267,7 +269,9 @@ project_domain_name = default
 user_domain_name = default
 {% if pillar.neutron is defined %}
 #l4148
+{%- if pillar.neutron.get('server', {}).get('identity', {}).get('region', False) %}
 region_name= {{ pillar.neutron.server.identity.region }}
+{%- endif %}
 #l4199
 password={{ pillar.neutron.server.identity.password }}
 #l4213
@@ -276,7 +280,9 @@ project_name={{ pillar.neutron.server.identity.tenant }}
 username={{ pillar.neutron.server.identity.user }}
 {%- else %}
 #l4148
+{%- if controller.get('network', {}).get('region', False) %}
 region_name= {{ controller.network.region }}
+{%- endif %}
 #l4199
 password={{ controller.network.password }}
 #l4213

@@ -254,11 +254,11 @@ user_domain_name = default
 region_name= {{ compute.network.region }}
 {%- endif %}
 #l4199
-password={{ compute.network.password }}
+password={{ compute.network.identity.password }}
 #l4213
 project_name={{ compute.identity.tenant }}
 #l4239
-username={{ compute.network.user }}
+username={{ compute.network.identity.user }}
 
 [oslo_concurrency]
 #l4296

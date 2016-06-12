@@ -284,11 +284,11 @@ username={{ pillar.neutron.server.identity.user }}
 region_name= {{ controller.network.region }}
 {%- endif %}
 #l4199
-password={{ controller.network.password }}
+password={{ controller.network.identity.password }}
 #l4213
-project_name={{ controller.network.tenant }}
+project_name={{ controller.network.identity.tenant }}
 #l4239
-username={{ controller.network.user }}
+username={{ controller.network.identity.user }}
 {%- endif %}
 
 

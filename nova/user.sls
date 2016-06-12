@@ -1,90 +1,66 @@
-{% from "nova/map.jinja" import controller with context %}
-{%- if controller.enabled %}
-{%- if not salt['user.info']('nova') %}
-nova_controller__user_nova:
-  user.present:
-  - name: nova
-  - home: /var/lib/nova
-  - shell: /bin/false
-  - uid: 303
-  - gid: 303
-  - system: True
-  - require_in:
-    - pkg: nova_controller_packages
-nova_controller__group_nova:
+{%- from "nova/map.jinja" import controller with context -%}
+{%- from "nova/map.jinja" import compute with context -%}
+{%- from "nova/map.jinja" import user with context -%}
+
+{% set groups = user.user.groups_common %}
+
+{%- if compute.get('enabled', False) %}
+nova_user__group_virt:
   group.present:
-    - name: nova
-    - gid: 303
+    - name: {{user.group.name_virt}}
+{%- if user.group.gid_virt %}
+    - gid: {{user.group.gid_virt}}
+{%- endif %}
     - system: True
     - require_in:
-      - user: nova_controller__user_nova
+      - user: nova_user__user_nova
+{% do groups.append(user.group.name_virt) %}
 {%- endif %}
-{%- endif %}
-{%- from "nova/map.jinja" import compute with context %}
-{%- if compute.enabled %}
-{%- if not salt['user.info']('nova') %}
-nova_compute__user_nova:
+
+nova_user__group_nova:
+  group.present:
+    - name: {{user.group.name}}
+    - gid: {{user.group.gid}}
+    - system: True
+    - require_in:
+      - user: nova_user__user_nova
+nova_user__user_nova:
   user.present:
-  - name: nova
-  - home: /var/lib/nova
-  {%- if compute.user is defined %}
-  - shell: /bin/bash
-  {%- else %}
-  - shell: /bin/false
-  {%- endif %}
-  - uid: 303
-  - gid: 303
-  - system: True
-  - groups:
-    {%- if salt['group.info']('libvirtd') %}
-    - libvirtd
-    {%- endif %}
-    - nova
-  - require_in:
-    - pkg: nova_compute_packages
+    - name: {{user.user.name}}
+    - home: {{user.user.home}}
+    - uid: {{user.user.uid}}
+    - gid: {{user.group.gid}}
+    - groups: {{groups|json}}
     {%- if compute.user is defined %}
-    - file: /var/lib/nova/.ssh/id_rsa
+    - shell: /bin/bash
+    {%- else %}
+    - shell: {{user.user.shell}}
     {%- endif %}
-nova_compute__group_nova:
-  group.present:
-    - name: nova
-    - gid: 303
+    - fullname: {{user.user.fullname}}
     - system: True
-    - require_in:
-      - user: nova_compute__user_nova
-{%- endif %}
 
 {%- if compute.user is defined %}
-
 nova_auth_keys:
   ssh_auth.present:
-  - user: nova
+  - user: {{user.user.name}}
   - names:
     - {{ compute.user.public_key }}
 
-user_nova_bash:
-  user.present:
-  - name: nova
-  - home: /var/lib/nova
-  - shell: /bin/bash
-  - groups:
-    - libvirtd
-
-/var/lib/nova/.ssh/id_rsa:
+{{user.user.home}}/.ssh/id_rsa:
   file.managed:
-  - user: nova
+  - user: {{user.user.name}}
   - contents_pillar: nova:compute:user:private_key
   - mode: 400
   - require:
-    - pkg: nova_compute_packages
+    - user: nova_user__user_nova
+    - ssh_auth: nova_auth_keys
 
-/var/lib/nova/.ssh/config:
+{{user.user.home}}/.ssh/config:
   file.managed:
-  - user: nova
+  - user: {{user.user.name}}
   - contents: StrictHostKeyChecking no
   - mode: 400
   - require:
-    - pkg: nova_compute_packages
+    - user: nova_user__user_nova
+    - ssh_auth: nova_auth_keys
 {%- endif %}
-{%- endif %}
-

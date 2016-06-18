@@ -1,43 +1,29 @@
 {%- from "nova/map.jinja" import compute with context %}
 {%- if compute.enabled %}
 
-nova_compute_packages:
-  pkg.installed:
-  - names: {{ compute.pkgs }}
-
-/var/log/nova:
-  file.directory:
-  {%- if compute.log_dir_perms is defined %}
-  - mode: {{ compute.log_dir_perms }}
-  {%- else %}
-  - mode: 750
-  {%- endif %}
-  - user: nova
-  - group: nova
-  - require:
-     - pkg: nova_compute_packages
-  - require_in:
-     - service: nova_compute_services
-
 {%- if compute.vm_swappiness is defined %}
 vm.swappiness:
   sysctl.present:
   - value: {{ compute.vm_swappiness }}
-  - require:
-    - pkg: nova_compute_packages
   - require_in:
     - service: nova_compute_services
 {%- endif %}
-
-{#- if pillar.nova.controller is not defined #}
 
 nova_compute__/etc/nova/nova.conf:
   file.managed:
   - name: /etc/nova/nova.conf
   - source: salt://nova/files/{{ compute.version }}/nova-compute.conf.{{ grains.os_family }}
   - template: jinja
+
+/var/log/nova:
+  file.directory:
+  - mode: {{ compute.log_dir_perms|default('0750') }}
+  - user: nova
+  - group: nova
   - require:
-    - pkg: nova_compute_packages
+     - file: nova_compute__/etc/nova/nova.conf
+  - require_in:
+     - service: nova_compute_services
 
 nova_compute_services:
   service.running:
@@ -49,10 +35,6 @@ nova_compute_services:
 {%- if compute.virtualization == 'kvm' %}
 
 {% if compute.ceph is defined %}
-
-ceph_package:
-  pkg.installed:
-  - name: ceph-common
 
 /etc/secret.xml:
   file.managed:
@@ -81,7 +63,7 @@ ceph_virsh_secret_set_value:
   - source: salt://nova/files/{{ compute.version }}/libvirt.{{ grains.os_family }}
   - template: jinja
   - require:
-    - pkg: nova_compute_packages
+    - file: nova_compute__/etc/nova/nova.conf
   - watch_in:
     - service: {{ compute.libvirt_service }}
 {%- endif %}
@@ -91,33 +73,31 @@ ceph_virsh_secret_set_value:
   - source: salt://nova/files/{{ compute.version }}/qemu.conf.{{ grains.os_family }}
   - template: jinja
   - require:
-    - pkg: nova_compute_packages
+    - file: nova_compute__/etc/nova/nova.conf
 
 /etc/libvirt/{{ compute.libvirt_config }}:
   file.managed:
   - source: salt://nova/files/{{ compute.version }}/libvirtd.conf.{{ grains.os_family }}
   - template: jinja
   - require:
-    - pkg: nova_compute_packages
+    - file: nova_compute__/etc/nova/nova.conf
 
 virsh net-undefine default:
   cmd.run:
   - name: "virsh net-destroy default"
   - require:
-    - pkg: nova_compute_packages
+    - file: nova_compute__/etc/nova/nova.conf
   - onlyif: "virsh net-list | grep default"
 
 {{ compute.libvirt_service }}:
   service.running:
   - enable: true
   - require:
-    - pkg: nova_compute_packages
+    - file: nova_compute__/etc/nova/nova.conf
     - cmd: virsh net-undefine default
   - watch:
     - file: /etc/libvirt/{{ compute.libvirt_config }}
 
 {%- endif %}
-
-{#- endif #}
 
 {%- endif %}

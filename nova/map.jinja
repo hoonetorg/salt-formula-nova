@@ -1,3 +1,6 @@
+{% import_yaml 'nova/defaults_controller.yaml' as controller %}
+{% import_yaml 'nova/defaults_compute.yaml' as compute %}
+
 {% set compute_bind_defaults = {
     'vnc_address': '10.0.0.10',
     'vnc_port': '6080',
@@ -45,7 +48,7 @@
     },
 }, merge=salt['pillar.get']('nova:user')) %}
 
-{% set controller = salt['grains.filter_by']({
+{% set os_controller = salt['grains.filter_by']({
     'Debian': {
         'pkgs': ['nova-novncproxy', 'novnc', 'nova-api', 'nova-ajax-console-proxy', 'nova-cert', 'nova-conductor', 'nova-consoleauth', 'nova-doc', 'nova-scheduler', 'python-novaclient', 'python-memcache'],
         'services': ['nova-api', 'nova-cert', 'nova-consoleauth', 'nova-scheduler', 'nova-conductor', 'nova-novncproxy'],
@@ -57,8 +60,9 @@
         'debug': false,
     },
 }, merge=salt['pillar.get']('nova:controller')) %}
+{% do controller.update(os_controller) %}
 
-{% set compute = salt['grains.filter_by']({
+{% set os_compute = salt['grains.filter_by']({
     'Debian': {
         'pkgs': ['nova-compute-kvm', 'python-novaclient', 'pm-utils', 'sysfsutils', 'sg3-utils', 'libvirt-bin', 'python-memcache', 'qemu-kvm','python-guestfs'],
         'services': ['nova-compute'],
@@ -76,7 +80,7 @@
     },
     'RedHat': {
         'pkgs': ['openstack-nova-compute', 'python-novaclient', 'python-nova', 'sysfsutils', 'sg3_utils'],
-        'services': ['messagebus', 'openstack-nova-compute', 'libvirtd'],
+        'services': ['openstack-nova-compute'],
         'libvirt_config': 'libvirt.conf',
         'libvirt_bin': '/etc/sysconfig/libvirtd',
         'libvirt_service': 'libvirtd',
@@ -96,3 +100,5 @@
         'libvirt_service': 'libvirt-bin',
     },
 }, grain='oscodename', merge=salt['pillar.get']('nova:compute'))) %}
+
+{% do compute.update(os_compute) %}

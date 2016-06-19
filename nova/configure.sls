@@ -1,4 +1,5 @@
 {% from "nova/map.jinja" import controller with context %}
+{%- from "nova/map.jinja" import compute with context %}
 
 {%- if controller.enabled %}
 
@@ -14,7 +15,7 @@ nova_controller__/etc/nova/api-paste.ini:
   - source: salt://nova/files/{{ controller.version }}/api-paste.ini.{{ grains.os_family }}
   - template: jinja
 
-nova_controller_syncdb:
+nova_controller__syncdb:
   cmd.run:
   - names:
     - nova-manage db sync
@@ -23,15 +24,26 @@ nova_controller_syncdb:
     {%- endif %}
   - require:
     - file: nova_controller__/etc/nova/nova.conf
+{%- endif %}
+{%- if compute.enabled %}
 
-nova_controller_services:
-  service.running:
-  - enable: true
-  - names: {{ controller.services }}
-  - require:
-    - cmd: nova_controller_syncdb
-  - watch:
-    - file: nova_controller__/etc/nova/nova.conf
-    - file: nova_controller__/etc/nova/api-paste.ini
+{%- if compute.vm_swappiness is defined %}
+vm.swappiness:
+  sysctl.present:
+  - value: {{ compute.vm_swappiness }}
+{%- endif %}
+
+nova_compute__/etc/nova/nova.conf:
+  file.managed:
+  - name: /etc/nova/nova.conf
+  - source: salt://nova/files/{{ compute.version }}/nova-compute.conf.{{ grains.os_family }}
+  - template: jinja
+
+nova_compute__/var/log/nova:
+  file.directory:
+  - name: /var/log/nova
+  - mode: {{ compute.log_dir_perms|default('0750') }}
+  - user: nova
+  - group: nova
 
 {%- endif %}

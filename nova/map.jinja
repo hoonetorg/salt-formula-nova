@@ -1,13 +1,6 @@
 {% import_yaml 'nova/defaults_controller.yaml' as controller %}
 {% import_yaml 'nova/defaults_compute.yaml' as compute %}
 
-{% set compute_bind_defaults = {
-    'vnc_address': '10.0.0.10',
-    'vnc_port': '6080',
-    'vnc_name': 'cloud.domain.com',
-    'vnc_protocol': 'http',
-} %}
-
 #openstack-nova-common: useradd -u 162 -r -g nova -G nova,nobody -d /var/lib/nova -s /sbin/nologin -c "OpenStack Nova Daemons" nova
 #openstack-nova-compute: usermod -a -G qemu nova
 #nova:x:162:162:OpenStack Nova Daemons:/var/lib/nova:/sbin/nologin

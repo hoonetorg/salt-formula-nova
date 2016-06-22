@@ -3,12 +3,6 @@
 
 {%- if controller.enabled %}
 
-#nova_controller__/etc/nova/nova.conf:
-#  file.managed:
-#  - name: /etc/nova/nova.conf
-#  - source: salt://nova/files/{{ controller.version }}/nova-controller.conf.{{ grains.os_family }}
-#  - template: jinja
-
 nova_configure__/etc/nova/nova.conf:
   file.managed:
   - name: /etc/nova/nova.conf
@@ -30,6 +24,7 @@ nova_controller__syncdb:
     {%- endif %}
   - require:
     - file: nova_configure__/etc/nova/nova.conf
+
 {%- endif %}
 {%- if compute.enabled %}
 
@@ -38,12 +33,6 @@ vm.swappiness:
   sysctl.present:
   - value: {{ compute.vm_swappiness }}
 {%- endif %}
-
-#nova_compute__/etc/nova/nova.conf:
-#  file.managed:
-#  - name: /etc/nova/nova.conf
-#  - source: salt://nova/files/{{ compute.version }}/nova-compute.conf.{{ grains.os_family }}
-#  - template: jinja
 
 nova_configure__/var/log/nova:
   file.directory:

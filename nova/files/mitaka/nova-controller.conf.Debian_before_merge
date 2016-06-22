@@ -1,7 +1,6 @@
 {%- from "nova/map.jinja" import controller with context -%}
-{%- from "nova/map.jinja" import compute with context -%}
 [DEFAULT]
-#l141(only_controller)
+#l141
 my_ip={{ controller.bind.private_address }}
 #l192
 state_path = /var/lib/nova
@@ -9,66 +8,65 @@ state_path = /var/lib/nova
 report_interval = 5
 #l265
 enabled_apis = osapi_compute,metadata
-#l271(only_controller)
+#l271
 osapi_compute_listen={{ controller.bind.private_address }}
-#l280(only_controller)
+#l280
 osapi_compute_workers = {{ controller.workers }}
-#l288(only_controller)
+#l288
 metadata_listen={{ controller.bind.private_address }}
-#l297(only_controller)
+#l297
 metadata_workers = {{ controller.workers }}
-#l328(only_compute)
-service_down_time = 90
-#l350(only_controller)
+
+
+#l350
 rootwrap_config = /etc/nova/rootwrap.conf
 #l380
 auth_strategy = keystone
 #l430
 use_neutron = True
-#l461(only_compute)
-resume_guests_state_on_host_boot = True
-#l492(only_compute)
-live_migration_retry_count = 30
+
+
+
+
 #l514
 block_device_allocate_retries=600
 #l555
 block_device_allocate_retries_interval=10
-#l531(only_compute)
-heal_instance_info_cache_interval = {{ compute.heal_instance_info_cache_interval }}
-#duplicate#heal_instance_info_cache_interval = 0
-#l621(only_compute)
-{%- if compute.reserved_host_memory_mb is defined %}
-reserved_host_memory_mb = {{ compute.reserved_host_memory_mb }}
-{%- endif %}
-#l645(only_controller)
+
+
+
+
+
+
+#l645
 cpu_allocation_ratio = {{ controller.cpu_allocation_ratio }}
-#l653(only_controller)
+#l653
 ram_allocation_ratio = {{ controller.ram_allocation_ratio }}
-#l665(only_controller)
+#l665
 disk_allocation_ratio = {{ controller.disk_allocation_ratio }}
 #l701
 allow_resize_to_same_host = True
 #was duplicate in template#allow_resize_to_same_host=True
-#l965(only_controller)
+#l965
 {% if controller.get('scheduler_default_filters', False) %}
 scheduler_default_filters = {{ controller.scheduler_default_filters }}
 {% endif %}
-#l1070(only_controller)
+#l1070
 scheduler_driver = filter_scheduler
 #l1419
 compute_driver = libvirt.LibvirtDriver
-#l1483(only_compute)
-{%- if compute.glance.use_cow is defined %}
-use_cow_images = {{ compute.glance.use_cow }}
-{%- endif %}
-#l1511(only_controller)
+
+
+
+
+#l1511
 vif_plugging_is_fatal = False
-#l1532(only_controller)
+#l1532
 vif_plugging_timeout = 0
 #l1559
 firewall_driver = nova.virt.firewall.NoopFirewallDriver
 #duplicate on nova.conf for controller#firewall_driver = nova.virt.firewall.NoopFirewallDriver
-#l1611(only_controller)
+#l1611
 injected_network_template = /usr/share/nova/interfaces.template
 #l1627
 api_paste_config=/etc/nova/api-paste.ini
@@ -78,8 +76,8 @@ dhcpbridge_flagfile = /etc/nova/nova.conf
 dhcpbridge = /usr/bin/nova-dhcpbridge
 #l1884
 force_dhcp_release = True
-#l1929(only_compute)
-image_cache_manager_interval = 0
+
+
 #l1949
 {%- if controller.debug %}
 debug = True
@@ -92,61 +90,42 @@ verbose = True
 log_dir = /var/log/nova
 #l2075
 rpc_cast_timeout = 30
-#deprecated in favor of executor_thread_pool_size(only_controller)
+#deprecated in favor of executor_thread_pool_size
 #rpc_thread_pool_size = 70
 #l2105
 executor_thread_pool_size = 70
 #l2108
 rpc_response_timeout = 3600
-#l2117(only_controller)
+#l2117
 rpc_backend = rabbit
 
-#whole if clause: (only_compute)
-{% if pillar.ceilometer is defined %}
-instance_usage_audit = True
-instance_usage_audit_period = hour
-notify_on_state_change = vm_and_task_state
-{% endif %}
 
-#must be deprecated
+#must be deprecated 
 #moved to cinder?
-#(only_controller)
 #volumes_dir = /etc/nova/volumes
-#(only_compute)
-#volumes_path=/var/lib/nova/volumes
-#(only_controller)
+
 #osapi_volume_listen={{ controller.bind.private_address }}
 #iscsi_helper=tgtadm
 #?
 #libvirt_nonblocking = True
 #connection_type = libvirt
 #root_helper=sudo nova-rootwrap /etc/nova/rootwrap.conf
-#(only_controller)
 #removed in 2013#https://github.com/openstack/nova/commit/c21cbe8cd59bffe9b3d1fe9d9f4a8dc3da8cf313
 #start_guests_on_host_boot=true
-#(only_controller)
 #deprecated in favor of [glance]:host
 #glance_host = {{ controller.glance.host }}
-#(only_compute)
-#deprecated in favor of [glance]:port
-#glance_port = 9292
-#(only_compute)
-#deprecated in favor of [libvirt]:live_migration_flag
-#{%- if compute.ceph.ephemeral is defined %}
-#live_migration_flag="VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE,VIR_MIGRATE_PERSIST_DEST,VIR_MIGRATE_TUNNELLED"
-#{%- else %}
-#live_migration_flag=VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE
-#{%- endif %}
-#(only_controller)
+
+
+
+
+
+
+
 #deprecated in favor of [neutron]:metadata_proxy_shared_secret
 #{%- if controller.get('networking', 'default') != "contrail" %}
 #neutron_metadata_proxy_shared_secret={{ controller.metadata.password }}
 #{%- endif %}
-#(only_compute)
-#deprecated in favor of [neutron]:timeout
-#neutron_url_timeout = 300
 
-#whole section !!!!FIXME !!! attention: (only_controller)
 [api_database]
 #l2166
 connection = {{ controller.database.engine }}+pymysql://{{ controller.database.user }}:{{ controller.database.password }}@{{ controller.database.host }}/{{ controller.database.name }}_api
@@ -191,12 +170,12 @@ catalog_info=volumev2:cinderv2:internalURL
 os_region_name = {{ controller.identity.region }}
 {%- endif %}
 
-#whole section !!!!FIXME !!! attention: (only_controller)
+
 [conductor]
 #l3044
 workers = {{ controller.workers }}
 
-#whole section !!!!FIXME !!! attention: (only_controller)
+
 [database]
 #l3126 and l3223
 connection = {{ controller.database.engine }}+pymysql://{{ controller.database.user }}:{{ controller.database.password }}@{{ controller.database.host }}/{{ controller.database.name }}
@@ -224,18 +203,15 @@ db_max_retries = 3
 [glance]
 #l3330
 host = {{ controller.glance.host }}
-#l3338(only_compute)
-port = 9292
-#l3359(only_compute)
-num_retries = 10
+#l3338
 
 [keystone_authtoken]
 #l3527
 auth_uri=http://{{ controller.identity.host }}:5000
 #not in template
 auth_url=http://{{ controller.identity.host }}:35357
-#correct name seems to be signing_dir(only_compute)
-#signing_dirname=/tmp/keystone-signing-nova
+
+
 #l3564
 signing_dir=/tmp/keystone-signing-nova
 {%- if controller.cache is defined %}
@@ -260,47 +236,21 @@ virt_type = kvm
 inject_partition = -1
 #l3689
 use_usb_tablet = True
-#l3707(only_compute)
-{%- if compute.ceph.ephemeral is defined %}
-live_migration_flag="VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE,VIR_MIGRATE_PERSIST_DEST,VIR_MIGRATE_TUNNELLED"
-{%- else %}
-live_migration_flag=VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE
-{%- endif %}
+
+
+
+
+
+
 #l3778
 cpu_mode = host-passthrough
 #l3886
 use_virtio_for_bridges = True
 
-#whole if clause: (only_compute)
-{%- if compute.ceph.ephemeral is defined %}
-#l3831
-images_type=rbd
-#l3842
-images_rbd_pool={{ compute.ceph.rbd_pool }}
-#l3845
-images_rbd_ceph_conf=/etc/ceph/ceph.conf
-#l3921
-rbd_user={{ compute.ceph.rbd_user }}
-#l3924
-rbd_secret_uuid={{ compute.ceph.secret_uuid }}
-#deprecated: should be inject_password
-#libvirt_inject_password=false
-#l3679
-inject_password=false
-#deprecated: should be inject_key
-#libvirt_inject_key=false
-#l3682
-inject_key=false
-#deprecated: should be inject_partition
-#libvirt_inject_partition=-2
-#l3686
-inject_partition=-2
-{%- endif %}
-
 [neutron]
-#l4135(only_controller)
+#l4135
 service_metadata_proxy=True
-#l4138(only_controller)
+#l4138
 {%- if controller.get('networking', 'default') != "contrail" %}
 metadata_proxy_shared_secret={{ controller.metadata.password }}
 {%- endif %}
@@ -308,20 +258,15 @@ metadata_proxy_shared_secret={{ controller.metadata.password }}
 #l4145
 url=http://{{ controller.network.host }}:{{ controller.network.port }}
 #l4161
-auth_url = http://{{ controller.identity.host }}:{{ controller.identity.port }}
+auth_url = http://{{ controller.identity.host }}:35357
 #l4165
 auth_type = password
 #l4205
 project_domain_name = default
-#l4223(only_compute)
-timeout = 300
+
+
 #l4232
 user_domain_name = default
-
-
-#whole if clause until else FIXME: (only_controller)
-#controller has probably neutron pillar
-#i think: don't do that (depending on pillar of other formula, we don't do it anywhere else
 {% if pillar.neutron is defined %}
 #l4148
 {%- if pillar.neutron.get('server', {}).get('identity', {}).get('region', False) %}
@@ -334,8 +279,6 @@ project_name={{ pillar.neutron.server.identity.tenant }}
 #l4239
 username={{ pillar.neutron.server.identity.user }}
 {%- else %}
-
-
 #l4148
 {%- if controller.get('network', {}).get('region', False) %}
 region_name= {{ controller.network.region }}
@@ -346,19 +289,12 @@ password={{ controller.network.identity.password }}
 project_name={{ controller.network.identity.tenant }}
 #l4239
 username={{ controller.network.identity.user }}
-{%- endif %}(only_controller)
+{%- endif %}
+
 
 [oslo_concurrency]
 #l4296
 lock_path = /var/lib/nova/tmp
-
-
-#whole section !!!!FIXME !!! attention: (only_compute)
-[oslo_messaging_notifications]
-{%- if compute.notification is defined %}
-#l4379
-driver = messagingv2
-{%- endif %}
 
 [oslo_messaging_rabbit]
 {%- if controller.message_queue.members is defined %}
@@ -399,18 +335,18 @@ enabled = false
 enabled = true
 #l5397
 keymap = {{ controller.get('vnc_keymap', 'en-us') }}
-
-#according to https://ask.openstack.org/en/question/67409/does-it-make-sense-to-define-a-vnc-server-in-an-openstack-controller-node/
-#only needed on compute node
+{%- if pillar.nova.compute is defined %}
 #l5416
 vncserver_listen={{ controller.bind.private_address }}
 #l5440
 vncserver_proxyclient_address={{ controller.bind.private_address }}
-
-
-#l5466(only_controller)
+{%- else %}
+#l5416
+vncserver_listen=0.0.0.0
+{%- endif %}
+#l5466
 novncproxy_host = 0.0.0.0
 #l5494
-novncproxy_port={{ controller.bind.get('vnc_port', '6080') }}
+novncproxy_port={{ controller.bind.get('vncproxy_port', '6080') }}
 #l5521
 novncproxy_base_url = {{ controller.vncproxy_url }}/vnc_auto.html

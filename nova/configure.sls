@@ -3,13 +3,19 @@
 
 {%- if controller.enabled %}
 
-nova_controller__/etc/nova/nova.conf:
+#nova_controller__/etc/nova/nova.conf:
+#  file.managed:
+#  - name: /etc/nova/nova.conf
+#  - source: salt://nova/files/{{ controller.version }}/nova-controller.conf.{{ grains.os_family }}
+#  - template: jinja
+
+nova_configure__/etc/nova/nova.conf:
   file.managed:
   - name: /etc/nova/nova.conf
-  - source: salt://nova/files/{{ controller.version }}/nova-controller.conf.{{ grains.os_family }}
+  - source: salt://nova/files/{{ controller.version }}/nova.conf.{{ grains.os_family }}
   - template: jinja
 
-nova_controller__/etc/nova/api-paste.ini:
+nova_configure__/etc/nova/api-paste.ini:
   file.managed:
   - name: /etc/nova/api-paste.ini
   - source: salt://nova/files/{{ controller.version }}/api-paste.ini.{{ grains.os_family }}
@@ -23,7 +29,7 @@ nova_controller__syncdb:
     - nova-manage api_db sync
     {%- endif %}
   - require:
-    - file: nova_controller__/etc/nova/nova.conf
+    - file: nova_configure__/etc/nova/nova.conf
 {%- endif %}
 {%- if compute.enabled %}
 
@@ -33,13 +39,13 @@ vm.swappiness:
   - value: {{ compute.vm_swappiness }}
 {%- endif %}
 
-nova_compute__/etc/nova/nova.conf:
-  file.managed:
-  - name: /etc/nova/nova.conf
-  - source: salt://nova/files/{{ compute.version }}/nova-compute.conf.{{ grains.os_family }}
-  - template: jinja
+#nova_compute__/etc/nova/nova.conf:
+#  file.managed:
+#  - name: /etc/nova/nova.conf
+#  - source: salt://nova/files/{{ compute.version }}/nova-compute.conf.{{ grains.os_family }}
+#  - template: jinja
 
-nova_compute__/var/log/nova:
+nova_configure__/var/log/nova:
   file.directory:
   - name: /var/log/nova
   - mode: {{ compute.log_dir_perms|default('0750') }}

@@ -1,8 +1,19 @@
 {%- from "nova/map.jinja" import controller with context -%}
 {%- from "nova/map.jinja" import compute with context -%}
+
+{%- set server = {} %}
+{%- if controller.get('enabled', False) %}
+  {%- do server.update(controller) %}
+{%- endif %}
+{%- if compute.get('enabled', False) %}
+  {%- do server.update(compute) %}
+{%- endif %}
+#{# server|json#}
+  
+
 [DEFAULT]
 #l141(only_controller)
-my_ip={{ controller.bind.private_address }}
+my_ip={{ server.bind.private_address }}
 #l192
 state_path = /var/lib/nova
 #l255
@@ -10,13 +21,13 @@ report_interval = 5
 #l265
 enabled_apis = osapi_compute,metadata
 #l271(only_controller)
-osapi_compute_listen={{ controller.bind.private_address }}
+osapi_compute_listen={{ server.bind.private_address }}
 #l280(only_controller)
-osapi_compute_workers = {{ controller.workers }}
+osapi_compute_workers = {{ server.workers }}
 #l288(only_controller)
-metadata_listen={{ controller.bind.private_address }}
+metadata_listen={{ server.bind.private_address }}
 #l297(only_controller)
-metadata_workers = {{ controller.workers }}
+metadata_workers = {{ server.workers }}
 #l328(only_compute)
 service_down_time = 90
 #l350(only_controller)
@@ -34,32 +45,32 @@ block_device_allocate_retries=600
 #l555
 block_device_allocate_retries_interval=10
 #l531(only_compute)
-heal_instance_info_cache_interval = {{ compute.heal_instance_info_cache_interval }}
+heal_instance_info_cache_interval = {{ server.heal_instance_info_cache_interval }}
 #duplicate#heal_instance_info_cache_interval = 0
 #l621(only_compute)
-{%- if compute.reserved_host_memory_mb is defined %}
-reserved_host_memory_mb = {{ compute.reserved_host_memory_mb }}
+{%- if server.reserved_host_memory_mb is defined %}
+reserved_host_memory_mb = {{ server.reserved_host_memory_mb }}
 {%- endif %}
 #l645(only_controller)
-cpu_allocation_ratio = {{ controller.cpu_allocation_ratio }}
+cpu_allocation_ratio = {{ server.cpu_allocation_ratio }}
 #l653(only_controller)
-ram_allocation_ratio = {{ controller.ram_allocation_ratio }}
+ram_allocation_ratio = {{ server.ram_allocation_ratio }}
 #l665(only_controller)
-disk_allocation_ratio = {{ controller.disk_allocation_ratio }}
+disk_allocation_ratio = {{ server.disk_allocation_ratio }}
 #l701
 allow_resize_to_same_host = True
 #was duplicate in template#allow_resize_to_same_host=True
 #l965(only_controller)
-{% if controller.get('scheduler_default_filters', False) %}
-scheduler_default_filters = {{ controller.scheduler_default_filters }}
+{% if server.get('scheduler_default_filters', False) %}
+scheduler_default_filters = {{ server.scheduler_default_filters }}
 {% endif %}
 #l1070(only_controller)
 scheduler_driver = filter_scheduler
 #l1419
 compute_driver = libvirt.LibvirtDriver
 #l1483(only_compute)
-{%- if compute.glance.use_cow is defined %}
-use_cow_images = {{ compute.glance.use_cow }}
+{%- if server.glance.use_cow is defined %}
+use_cow_images = {{ server.glance.use_cow }}
 {%- endif %}
 #l1511(only_controller)
 vif_plugging_is_fatal = False
@@ -81,7 +92,7 @@ force_dhcp_release = True
 #l1929(only_compute)
 image_cache_manager_interval = 0
 #l1949
-{%- if controller.debug %}
+{%- if server.debug %}
 debug = True
 {%- else %}
 debug = False
@@ -115,7 +126,7 @@ notify_on_state_change = vm_and_task_state
 #(only_compute)
 #volumes_path=/var/lib/nova/volumes
 #(only_controller)
-#osapi_volume_listen={{ controller.bind.private_address }}
+#osapi_volume_listen={{ server.bind.private_address }}
 #iscsi_helper=tgtadm
 #?
 #libvirt_nonblocking = True
@@ -126,21 +137,21 @@ notify_on_state_change = vm_and_task_state
 #start_guests_on_host_boot=true
 #(only_controller)
 #deprecated in favor of [glance]:host
-#glance_host = {{ controller.glance.host }}
+#glance_host = {{ server.glance.host }}
 #(only_compute)
 #deprecated in favor of [glance]:port
 #glance_port = 9292
 #(only_compute)
 #deprecated in favor of [libvirt]:live_migration_flag
-#{%- if compute.ceph.ephemeral is defined %}
+#{%- if server.ceph.ephemeral is defined %}
 #live_migration_flag="VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE,VIR_MIGRATE_PERSIST_DEST,VIR_MIGRATE_TUNNELLED"
 #{%- else %}
 #live_migration_flag=VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE
 #{%- endif %}
 #(only_controller)
 #deprecated in favor of [neutron]:metadata_proxy_shared_secret
-#{%- if controller.get('networking', 'default') != "contrail" %}
-#neutron_metadata_proxy_shared_secret={{ controller.metadata.password }}
+#{%- if server.get('networking', 'default') != "contrail" %}
+#neutron_metadata_proxy_shared_secret={{ server.metadata.password }}
 #{%- endif %}
 #(only_compute)
 #deprecated in favor of [neutron]:timeout
@@ -149,7 +160,7 @@ notify_on_state_change = vm_and_task_state
 #whole section !!!!FIXME !!! attention: (only_controller)
 [api_database]
 #l2166
-connection = {{ controller.database.engine }}+pymysql://{{ controller.database.user }}:{{ controller.database.password }}@{{ controller.database.host }}/{{ controller.database.name }}_api
+connection = {{ server.database.engine }}+pymysql://{{ server.database.user }}:{{ server.database.password }}@{{ server.database.host }}/{{ server.database.name }}_api
 #l2182
 idle_timeout = 180
 #l2185
@@ -173,13 +184,13 @@ pool_timeout = 120
 
 
 [cache]
-{%- if controller.cache is defined %}
+{%- if server.cache is defined %}
 #l2260
 enabled = true
 #wrong option in [cache] section
-#memcached_servers={%- for member in controller.cache.members %}{{ member.host }}:11211{% if not loop.last %},{% endif %}{%- endfor %}
+#memcached_servers={%- for member in server.cache.members %}{{ member.host }}:11211{% if not loop.last %},{% endif %}{%- endfor %}
 #l2270
-memcache_servers={%- for member in controller.cache.members %}{{ member.host }}:11211{% if not loop.last %},{% endif %}{%- endfor %}
+memcache_servers={%- for member in server.cache.members %}{{ member.host }}:11211{% if not loop.last %},{% endif %}{%- endfor %}
 {%- endif %}
 
 
@@ -187,19 +198,19 @@ memcache_servers={%- for member in controller.cache.members %}{{ member.host }}:
 #l2995
 catalog_info=volumev2:cinderv2:internalURL
 #l3002
-{%- if controller.get('identity', {}).get('region', False) %}
-os_region_name = {{ controller.identity.region }}
+{%- if server.get('identity', {}).get('region', False) %}
+os_region_name = {{ server.identity.region }}
 {%- endif %}
 
 #whole section !!!!FIXME !!! attention: (only_controller)
 [conductor]
 #l3044
-workers = {{ controller.workers }}
+workers = {{ server.workers }}
 
 #whole section !!!!FIXME !!! attention: (only_controller)
 [database]
 #l3126 and l3223
-connection = {{ controller.database.engine }}+pymysql://{{ controller.database.user }}:{{ controller.database.password }}@{{ controller.database.host }}/{{ controller.database.name }}
+connection = {{ server.database.engine }}+pymysql://{{ server.database.user }}:{{ server.database.password }}@{{ server.database.host }}/{{ server.database.name }}
 #l3142 and l3239
 idle_timeout = 180
 #l3147 and l3242
@@ -223,7 +234,7 @@ db_max_retries = 3
 
 [glance]
 #l3330
-host = {{ controller.glance.host }}
+host = {{ server.glance.host }}
 #l3338(only_compute)
 port = 9292
 #l3359(only_compute)
@@ -231,27 +242,27 @@ num_retries = 10
 
 [keystone_authtoken]
 #l3527
-auth_uri=http://{{ controller.identity.host }}:5000
+auth_uri=http://{{ server.identity.host }}:5000
 #not in template
-auth_url=http://{{ controller.identity.host }}:35357
+auth_url=http://{{ server.identity.host }}:35357
 #correct name seems to be signing_dir(only_compute)
 #signing_dirname=/tmp/keystone-signing-nova
 #l3564
 signing_dir=/tmp/keystone-signing-nova
-{%- if controller.cache is defined %}
+{%- if server.cache is defined %}
 #l3569
-memcached_servers={%- for member in controller.cache.members %}{{ member.host }}:11211{% if not loop.last %},{% endif %}{%- endfor %}
+memcached_servers={%- for member in server.cache.members %}{{ member.host }}:11211{% if not loop.last %},{% endif %}{%- endfor %}
 {%- endif %}
 #l3580
 revocation_cache_time = 10
 #l3618
 auth_type = password
 #not in template
-user_domain_id = {{ controller.identity.get('domain', 'default') }}
-project_domain_id = {{ controller.identity.get('domain', 'default') }}
-project_name = {{ controller.identity.tenant }}
-username = {{ controller.identity.user }}
-password = {{ controller.identity.password }}
+user_domain_id = {{ server.identity.get('domain', 'default') }}
+project_domain_id = {{ server.identity.get('domain', 'default') }}
+project_name = {{ server.identity.tenant }}
+username = {{ server.identity.user }}
+password = {{ server.identity.password }}
 
 [libvirt]
 #l3672
@@ -261,7 +272,7 @@ inject_partition = -1
 #l3689
 use_usb_tablet = True
 #l3707(only_compute)
-{%- if compute.ceph.ephemeral is defined %}
+{%- if server.ceph.ephemeral is defined %}
 live_migration_flag="VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE,VIR_MIGRATE_PERSIST_DEST,VIR_MIGRATE_TUNNELLED"
 {%- else %}
 live_migration_flag=VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE
@@ -272,17 +283,17 @@ cpu_mode = host-passthrough
 use_virtio_for_bridges = True
 
 #whole if clause: (only_compute)
-{%- if compute.ceph.ephemeral is defined %}
+{%- if server.ceph.ephemeral is defined %}
 #l3831
 images_type=rbd
 #l3842
-images_rbd_pool={{ compute.ceph.rbd_pool }}
+images_rbd_pool={{ server.ceph.rbd_pool }}
 #l3845
 images_rbd_ceph_conf=/etc/ceph/ceph.conf
 #l3921
-rbd_user={{ compute.ceph.rbd_user }}
+rbd_user={{ server.ceph.rbd_user }}
 #l3924
-rbd_secret_uuid={{ compute.ceph.secret_uuid }}
+rbd_secret_uuid={{ server.ceph.secret_uuid }}
 #deprecated: should be inject_password
 #libvirt_inject_password=false
 #l3679
@@ -301,14 +312,14 @@ inject_partition=-2
 #l4135(only_controller)
 service_metadata_proxy=True
 #l4138(only_controller)
-{%- if controller.get('networking', 'default') != "contrail" %}
-metadata_proxy_shared_secret={{ controller.metadata.password }}
+{%- if server.get('networking', 'default') != "contrail" %}
+metadata_proxy_shared_secret={{ server.metadata.password }}
 {%- endif %}
 
 #l4145
-url=http://{{ controller.network.host }}:{{ controller.network.port }}
+url=http://{{ server.network.host }}:{{ server.network.port }}
 #l4161
-auth_url = http://{{ controller.identity.host }}:{{ controller.identity.port }}
+auth_url = http://{{ server.identity.host }}:{{ server.identity.port }}
 #l4165
 auth_type = password
 #l4205
@@ -337,15 +348,15 @@ username={{ pillar.neutron.server.identity.user }}
 
 
 #l4148
-{%- if controller.get('network', {}).get('region', False) %}
-region_name= {{ controller.network.region }}
+{%- if server.get('network', {}).get('region', False) %}
+region_name= {{ server.network.region }}
 {%- endif %}
 #l4199
-password={{ controller.network.identity.password }}
+password={{ server.network.identity.password }}
 #l4213
-project_name={{ controller.network.identity.tenant }}
+project_name={{ server.network.identity.tenant }}
 #l4239
-username={{ controller.network.identity.user }}
+username={{ server.network.identity.user }}
 {%- endif %}(only_controller)
 
 [oslo_concurrency]
@@ -355,30 +366,30 @@ lock_path = /var/lib/nova/tmp
 
 #whole section !!!!FIXME !!! attention: (only_compute)
 [oslo_messaging_notifications]
-{%- if compute.notification is defined %}
+{%- if server.notification is defined %}
 #l4379
 driver = messagingv2
 {%- endif %}
 
 [oslo_messaging_rabbit]
-{%- if controller.message_queue.members is defined %}
+{%- if server.message_queue.members is defined %}
 #l4457
-rabbit_hosts = {% for member in controller.message_queue.members -%}
+rabbit_hosts = {% for member in server.message_queue.members -%}
                    {{ member.host }}:{{ member.get('port', 5672) }}
                    {%- if not loop.last -%},{%- endif -%}
                {%- endfor -%}
 {%- else %}
 #l4447
-rabbit_host = {{ controller.message_queue.host }}
+rabbit_host = {{ server.message_queue.host }}
 #l4453
-rabbit_port = {{ controller.message_queue.port }}
+rabbit_port = {{ server.message_queue.port }}
 {%- endif %}
 #l4465
-rabbit_userid = {{ controller.message_queue.user }}
+rabbit_userid = {{ server.message_queue.user }}
 #l4469
-rabbit_password = {{ controller.message_queue.password }}
+rabbit_password = {{ server.message_queue.password }}
 #l4477
-rabbit_virtual_host = {{ controller.message_queue.virtual_host }}
+rabbit_virtual_host = {{ server.message_queue.virtual_host }}
 
 #FIXMEseems to be in [default] section which must be wrong #l2044
 rpc_conn_pool_size = 300
@@ -390,7 +401,7 @@ rabbit_retry_backoff = 2
 
 [spice]
 #l4850
-html5proxy_base_url = {{ controller.vncproxy_url }}/spice_auto.html
+html5proxy_base_url = {{ server.vncproxy_url }}/spice_auto.html
 #l4860
 enabled = false
 
@@ -398,19 +409,19 @@ enabled = false
 #l5374
 enabled = true
 #l5397
-keymap = {{ controller.get('vnc_keymap', 'en-us') }}
+keymap = {{ server.get('vnc_keymap', 'en-us') }}
 
 #according to https://ask.openstack.org/en/question/67409/does-it-make-sense-to-define-a-vnc-server-in-an-openstack-controller-node/
 #only needed on compute node
 #l5416
-vncserver_listen={{ controller.bind.private_address }}
+vncserver_listen={{ server.bind.private_address }}
 #l5440
-vncserver_proxyclient_address={{ controller.bind.private_address }}
+vncserver_proxyclient_address={{ server.bind.private_address }}
 
 
 #l5466(only_controller)
 novncproxy_host = 0.0.0.0
 #l5494
-novncproxy_port={{ controller.bind.get('vnc_port', '6080') }}
+novncproxy_port={{ server.bind.get('vnc_port', '6080') }}
 #l5521
-novncproxy_base_url = {{ controller.vncproxy_url }}/vnc_auto.html
+novncproxy_base_url = {{ server.vncproxy_url }}/vnc_auto.html

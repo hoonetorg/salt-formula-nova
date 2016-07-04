@@ -55,6 +55,13 @@
 }, merge=salt['pillar.get']('nova:controller')) %}
 {% do controller.update(os_controller) %}
 
+#        'identity': {
+#            'region': 'RegionOne'
+#        },
+#        'network': {
+#            'region': 'RegionOne'
+#        },
+#        'heal_instance_info_cache_interval': '60',
 {% set os_compute = salt['grains.filter_by']({
     'Debian': {
         'pkgs': ['nova-compute-kvm', 'python-novaclient', 'pm-utils', 'sysfsutils', 'sg3-utils', 'libvirt-bin', 'python-memcache', 'qemu-kvm','python-guestfs'],
@@ -63,13 +70,6 @@
         'libvirt_service': 'libvirtd',
         'bind': compute_bind_defaults,
         'debug': false,
-        'identity': {
-            'region': 'RegionOne'
-        },
-        'network': {
-            'region': 'RegionOne'
-        },
-        'heal_instance_info_cache_interval': '60',
     },
     'RedHat': {
         'pkgs': ['openstack-nova-compute', 'python-novaclient', 'python-nova', 'sysfsutils', 'sg3_utils'],
@@ -79,13 +79,6 @@
         'libvirt_service': 'libvirtd',
         'bind': compute_bind_defaults,
         'debug': false,
-        'identity': {
-            'region': 'RegionOne'
-        },
-        'network': {
-            'region': 'RegionOne'
-        },
-        'heal_instance_info_cache_interval': '60',
     },
 }, merge=salt['grains.filter_by']({
     'trusty': {

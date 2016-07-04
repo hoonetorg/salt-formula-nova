@@ -12,112 +12,214 @@
   
 
 [DEFAULT]
-#l141(only_controller)
-my_ip={{ server.bind.private_address }}
-#l192
-state_path = /var/lib/nova
-#l255
+#l141(only_controller)(according to http://docs.openstack.org/mitaka/install-guide-rdo/nova-compute-install.html also on compute)
+my_ip = {{ server.bind.private_address }}
+
+#l192(seems to be default-> comment out)
+#state_path = /var/lib/nova
+
+#l255(default is 10 -> ok leave it here)
 report_interval = 5
-#l265
+
+#FIXME official docs set this option
+#l265(according to official docs not on compute, but on tcpcloud also on compute) 
 enabled_apis = osapi_compute,metadata
+
+{%- if controller.get('enabled', False) %}
 #l271(only_controller)
-osapi_compute_listen={{ server.bind.private_address }}
+osapi_compute_listen = {{ server.bind.private_address }}
+#FIXME: make optional
 #l280(only_controller)
 osapi_compute_workers = {{ server.workers }}
 #l288(only_controller)
-metadata_listen={{ server.bind.private_address }}
+metadata_listen = {{ server.bind.private_address }}
+#FIXME: make optional
 #l297(only_controller)
 metadata_workers = {{ server.workers }}
-#l328(only_compute)
+{%- endif %}
+
+{%- if compute.get('enabled', False) %}
+#l328(only_compute)(probably to fix https://bugs.launchpad.net/nova/+bug/1579213)(default 60)(seems to be a compute only option)
 service_down_time = 90
-#l350(only_controller)
-rootwrap_config = /etc/nova/rootwrap.conf
-#l380
+{%- endif %}
+
+{%- if controller.get('enabled', False) %}
+#l350(only_controller)(seems to be default -> comment out)
+#rootwrap_config = /etc/nova/rootwrap.conf
+{%- endif %}
+
+#FIXME official docs set this option
+#l380 
 auth_strategy = keystone
+
 #l430
 use_neutron = True
-#l461(only_compute)
+
+{%- if compute.get('enabled', False) %}
+#FIXME does this option fit with nova-evacuate? or should pacemaker manage guest boot on failure reboot - see also http://www.gossamer-threads.com/lists/openstack/dev/22671
+#l461(only_compute)(default: False) 
 resume_guests_state_on_host_boot = True
-#l492(only_compute)
-live_migration_retry_count = 30
-#l514
-block_device_allocate_retries=600
-#l555
-block_device_allocate_retries_interval=10
-#l531(only_compute)
-heal_instance_info_cache_interval = {{ server.heal_instance_info_cache_interval }}
-#duplicate#heal_instance_info_cache_interval = 0
-#l621(only_compute)
-{%- if server.reserved_host_memory_mb is defined %}
-reserved_host_memory_mb = {{ server.reserved_host_memory_mb }}
+
+#l492(only_compute)(seems to be default -> comment out)
+#live_migration_retry_count = 30
 {%- endif %}
-#l645(only_controller)
+
+#l514(https://bugs.launchpad.net/nova/+bug/1499518)(https://bugs.launchpad.net/openstack-chef/+bug/1513717)(http://ubuntu-bugs.narkive.com/x4cq5O3P/bug-1316556-re-vmware-boot-from-image-create-volume-is-failing)
+# has probably to do with image_cache_manager_interval
+#default: 60
+block_device_allocate_retries = 600
+#l555
+#default: 3
+block_device_allocate_retries_interval = 10
+
+{%- if compute.get('enabled', False) %}
+#l531(only_compute)(https://openstack.nimeyo.com/18942/openstack-neutron-heal_instance_info_cache_interval-kill)(should be 0 according to this)
+#duplicate#heal_instance_info_cache_interval = {# server.heal_instance_info_cache_interval #}
+heal_instance_info_cache_interval = 0
+
+#l621(only_compute)(default: 512)
+  {%- if server.reserved_host_memory_mb is defined %}
+reserved_host_memory_mb = {{ server.reserved_host_memory_mb }}
+  {%- endif %}
+{%- endif %}
+
+{%- if controller.get('enabled', False) %}
+#FIXME: make optional
+#l645(only_controller)(https://www.ibm.com/support/knowledgecenter/en/SS8MU9_2.3.0/Admin/concepts/resourceovercommit.html) 
+#*allocation_ratio set on node where nova-scheduler runs -> controller
+#default: 16
 cpu_allocation_ratio = {{ server.cpu_allocation_ratio }}
 #l653(only_controller)
 ram_allocation_ratio = {{ server.ram_allocation_ratio }}
 #l665(only_controller)
 disk_allocation_ratio = {{ server.disk_allocation_ratio }}
+{%- endif %}
+
 #l701
+# for my understanding this option seems to be useful only single host deployments
+# resize does a migrate
+# if only one compute node is there, resizing wouldn't work
+# let's make that optional
+#https://bugs.launchpad.net/nova/+bug/1251266 
+#https://review.openstack.org/#/c/102078/ 
+#https://bugs.launchpad.net/openstack-manuals/+bug/1447615 
+#https://review.openstack.org/#/c/118604/ 
+#https://blueprints.launchpad.net/nova/+spec/no-migration-resize 
+#https://bugs.launchpad.net/nova/+bug/1323578 
+#https://review.openstack.org/#/c/118604/
+  {%- if server.get('allow_resize_to_same_host', False) %}
 allow_resize_to_same_host = True
 #was duplicate in template#allow_resize_to_same_host=True
+  {%- endif %}
+
+
+{%- if controller.get('enabled', False) %}
 #l965(only_controller)
-{% if server.get('scheduler_default_filters', False) %}
+# consumed by nova-scheduler therefor only on controller
+  {%- if server.get('scheduler_default_filters', False) %}
 scheduler_default_filters = {{ server.scheduler_default_filters }}
-{% endif %}
-#l1070(only_controller)
-scheduler_driver = filter_scheduler
-#l1419
-compute_driver = libvirt.LibvirtDriver
-#l1483(only_compute)
-{%- if server.glance.use_cow is defined %}
-use_cow_images = {{ server.glance.use_cow }}
+  {%- endif %}
+
+#l1070(only_controller)(seems to be default - comment out)
+# consumed by nova-scheduler therefor only on controller
+#scheduler_driver = filter_scheduler
 {%- endif %}
+
+#l1419
+#Services which consume this nova-compute -> only compute
+#tcpcloud has in both config files FIXME 
+#(seems to be default -> comment out)
+#compute_driver = libvirt.LibvirtDriver
+
+
+{%- if compute.get('enabled', False) %}
+#l1483(only_compute)
+  {%- if server.glance.use_cow is defined %}
+use_cow_images = {{ server.glance.use_cow }}
+  {%- endif %}
+{%- endif %}
+
+{%- if controller.get('enabled', False) %}
 #l1511(only_controller)
+#FIXME: has this to do with heal_instance_info_cache_interval (no cache updates are sent or so and vif plugging will always fail or so???
 vif_plugging_is_fatal = False
 #l1532(only_controller)
 vif_plugging_timeout = 0
+{%- endif %}
+
 #l1559
+#when not using nova-network set noop fw driver of nova network
 firewall_driver = nova.virt.firewall.NoopFirewallDriver
 #duplicate on nova.conf for controller#firewall_driver = nova.virt.firewall.NoopFirewallDriver
+
 #l1611(only_controller)
-injected_network_template = /usr/share/nova/interfaces.template
+#(seems to be default -> comment out)
+#injected_network_template = /usr/share/nova/interfaces.template
+
 #l1627
-api_paste_config=/etc/nova/api-paste.ini
+#(seems to be default -> comment out)
+#api_paste_config=/etc/nova/api-paste.ini
+
 #l1737
-dhcpbridge_flagfile = /etc/nova/nova.conf
+#(seems to be default -> comment out)
+#dhcpbridge_flagfile = /etc/nova/nova.conf
+
 #l1746
-dhcpbridge = /usr/bin/nova-dhcpbridge
+#(seems to be default -> comment out)
+#dhcpbridge = /usr/bin/nova-dhcpbridge
+
 #l1884
-force_dhcp_release = True
-#l1929(only_compute)
+#(seems to be default -> comment out)
+#force_dhcp_release = True
+
+{%- if compute.get('enabled', False) %}
+#l1929(only_compute) has probably to do with block_device_allocate_retries
 image_cache_manager_interval = 0
+{%- endif %}
+
 #l1949
 {%- if server.debug %}
 debug = True
 {%- else %}
 debug = False
 {%- endif %}
-#l1955
-verbose = True
+
+#l1955(Deprecated)FIXME
+#verbose = True
+
 #l1980
-log_dir = /var/log/nova
+#(seems to be default -> comment out)
+#log_dir = /var/log/nova
+
+#l2044
+rpc_conn_pool_size = 300
+
 #l2075
-rpc_cast_timeout = 30
+#Only supported by impl_zmq, but we have rabbit
+#rpc_cast_timeout = 30
 #deprecated in favor of executor_thread_pool_size(only_controller)
 #rpc_thread_pool_size = 70
 #l2105
-executor_thread_pool_size = 70
+#not so different from default -> commented out
+#executor_thread_pool_size = 70
 #l2108
-rpc_response_timeout = 3600
-#l2117(only_controller)
+#we won't try this, because calls come back after an hour -> comment out(FIXME: set this if needed)
+#rpc_response_timeout = 3600
+
+#l2117(only_controller) -> according to official docs on compute and controller
 rpc_backend = rabbit
 
 #whole if clause: (only_compute)
-{% if pillar.ceilometer is defined %}
+#https://www.ibm.com/support/knowledgecenter/SS4KMC_2.3.0/com.ibm.sco.doc_2.3/TUAM/com.ibm.sccm.doc/admin_win_dc/r_configuring_openstack_nova.html
+#has probably to do with oslo_messaging_notifications:driver and that one needs pillar server.notification FIXME - but this one needs pillar.ceilometer
+{%- if compute.get('enabled', False) %}
+  {% if pillar.ceilometer is defined %}
 instance_usage_audit = True
 instance_usage_audit_period = hour
 notify_on_state_change = vm_and_task_state
-{% endif %}
+  {%- endif %}
+{%- endif %}
+
 
 #must be deprecated
 #moved to cinder?
@@ -140,7 +242,7 @@ notify_on_state_change = vm_and_task_state
 #glance_host = {{ server.glance.host }}
 #(only_compute)
 #deprecated in favor of [glance]:port
-#glance_port = 9292
+#glance_port = {{ server.glance.port }}
 #(only_compute)
 #deprecated in favor of [libvirt]:live_migration_flag
 #{%- if server.ceph.ephemeral is defined %}
@@ -158,11 +260,17 @@ notify_on_state_change = vm_and_task_state
 #neutron_url_timeout = 300
 
 #whole section !!!!FIXME !!! attention: (only_controller)
+
+{%- if controller.get('enabled', False) %}
 [api_database]
+#no line in config
+backend = sqlalchemy
 #l2166
-connection = {{ server.database.engine }}+pymysql://{{ server.database.user }}:{{ server.database.password }}@{{ server.database.host }}/{{ server.database.name }}_api
+connection = {{ server.database.engine }}://{{ server.database.user }}:{{ server.database.password }}@{{ server.database.host }}/{{ server.database.name }}_api
 #l2182
 idle_timeout = 180
+# no line
+min_pool_size = 100
 #l2185
 max_pool_size = 700
 #l2189
@@ -175,42 +283,48 @@ max_overflow = 100
 connection_debug = 10
 #l2205
 pool_timeout = 120
-
-#not existing in api_database
-#min_pool_size = 100
-#db_max_retries = 3
-#db_retry_interval = 1
-
-
+# no line
+db_retry_interval = 1
+# no line
+db_max_retries = 3
+{%- endif %}
 
 [cache]
 {%- if server.cache is defined %}
+#l2247
+backend = oslo_cache.memcache_pool
 #l2260
 enabled = true
 #wrong option in [cache] section
-#memcached_servers={%- for member in server.cache.members %}{{ member.host }}:11211{% if not loop.last %},{% endif %}{%- endfor %}
+#memcached_servers = {% for member in server.cache.members %}{{ member.host }}:{{ member.port }}{% if not loop.last %},{% endif %}{%- endfor %}
 #l2270
-memcache_servers={%- for member in server.cache.members %}{{ member.host }}:11211{% if not loop.last %},{% endif %}{%- endfor %}
+memcache_servers = {% for member in server.cache.members %}{{ member.host }}:{{ member.port }}{% if not loop.last %},{% endif %}{%- endfor %}
 {%- endif %}
 
 
 [cinder]
 #l2995
-catalog_info=volumev2:cinderv2:internalURL
+catalog_info = volumev2:cinderv2:internalURL
 #l3002
-{%- if server.get('identity', {}).get('region', False) %}
-os_region_name = {{ server.identity.region }}
-{%- endif %}
+#FIXME mandatory option or not
+#https://github.com/openstack/kolla/blob/stable/mitaka/ansible/roles/nova/templates/nova.conf.j2#L104 https://bugs.launchpad.net/nova/+bug/1087735
+{#- if server.get('identity', {}).get('region', False) #}
+os_region_name = {{ server.identity.region|default('RegionOne') }}
+{#- endif #}
 
+{%- if controller.get('enabled', False) %}
 #whole section !!!!FIXME !!! attention: (only_controller)
 [conductor]
 #l3044
+#FIXME: make optional
 workers = {{ server.workers }}
 
 #whole section !!!!FIXME !!! attention: (only_controller)
 [database]
+#l3119
+backend = sqlalchemy
 #l3126 and l3223
-connection = {{ server.database.engine }}+pymysql://{{ server.database.user }}:{{ server.database.password }}@{{ server.database.host }}/{{ server.database.name }}
+connection = {{ server.database.engine }}://{{ server.database.user }}:{{ server.database.password }}@{{ server.database.host }}/{{ server.database.name }}
 #l3142 and l3239
 idle_timeout = 180
 #l3147 and l3242
@@ -231,27 +345,30 @@ pool_timeout = 120
 db_retry_interval = 1
 #l3200 and l3297
 db_max_retries = 3
+{%- endif %}
 
 [glance]
 #l3330
 host = {{ server.glance.host }}
 #l3338(only_compute)
-port = 9292
+port = {{ server.glance.port }}
 #l3359(only_compute)
+#FIXME: why???
 num_retries = 10
 
 [keystone_authtoken]
 #l3527
-auth_uri=http://{{ server.identity.host }}:5000
+auth_uri = http://{{ server.identity.host }}:5000
 #not in template
-auth_url=http://{{ server.identity.host }}:35357
+auth_url = http://{{ server.identity.host }}:35357
 #correct name seems to be signing_dir(only_compute)
-#signing_dirname=/tmp/keystone-signing-nova
+#signing_dirname = /tmp/keystone-signing-nova
 #l3564
-signing_dir=/tmp/keystone-signing-nova
+#FIXME: remove this, only useful for pki based keystone tokens - we want uuid or fernet
+#signing_dir = /tmp/keystone-signing-nova
 {%- if server.cache is defined %}
 #l3569
-memcached_servers={%- for member in server.cache.members %}{{ member.host }}:11211{% if not loop.last %},{% endif %}{%- endfor %}
+memcached_servers = {% for member in server.cache.members %}{{ member.host }}:{{ member.port }}{% if not loop.last %},{% endif %}{%- endfor %}
 {%- endif %}
 #l3580
 revocation_cache_time = 10
@@ -264,56 +381,72 @@ project_name = {{ server.identity.tenant }}
 username = {{ server.identity.user }}
 password = {{ server.identity.password }}
 
+
 [libvirt]
+#FIME: whole libvirt section in official docs only available on compute node
 #l3672
 virt_type = kvm
 #l3686
-inject_partition = -1
+#FIXME: use libguestfs to check partition for vm???? - for ceph not, that's why we disable it here not to have duplicate setting wehn using ceph
+#inject_partition = -1
 #l3689
 use_usb_tablet = True
+{%- if compute.get('enabled', False) %}
+#FIXME why this option only on compute, but not all other opts official docs set [libvirt] block only on compute
 #l3707(only_compute)
 {%- if server.ceph.ephemeral is defined %}
 live_migration_flag="VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE,VIR_MIGRATE_PERSIST_DEST,VIR_MIGRATE_TUNNELLED"
 {%- else %}
 live_migration_flag=VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE
 {%- endif %}
+{%- endif %}
 #l3778
 cpu_mode = host-passthrough
 #l3886
 use_virtio_for_bridges = True
 
+{%- if compute.get('enabled', False) %}
 #whole if clause: (only_compute)
 {%- if server.ceph.ephemeral is defined %}
 #l3831
-images_type=rbd
+images_type = rbd
 #l3842
-images_rbd_pool={{ server.ceph.rbd_pool }}
+images_rbd_pool = {{ server.ceph.rbd_pool }}
 #l3845
-images_rbd_ceph_conf=/etc/ceph/ceph.conf
+images_rbd_ceph_conf = /etc/ceph/ceph.conf
 #l3921
-rbd_user={{ server.ceph.rbd_user }}
+rbd_user = {{ server.ceph.rbd_user }}
 #l3924
-rbd_secret_uuid={{ server.ceph.secret_uuid }}
+rbd_secret_uuid = {{ server.ceph.secret_uuid }}
 #deprecated: should be inject_password
-#libvirt_inject_password=false
+#libvirt_inject_password = false
 #l3679
-inject_password=false
+inject_password = false
 #deprecated: should be inject_key
-#libvirt_inject_key=false
+#libvirt_inject_key = false
 #l3682
-inject_key=false
+inject_key = false
+#FIXME we set this to -1 for compute and controller
 #deprecated: should be inject_partition
-#libvirt_inject_partition=-2
+#libvirt_inject_partition = -2
 #l3686
-inject_partition=-2
+inject_partition = -2
+#http://docs.openstack.org/developer/openstack-ansible/install-guide/configure-nova.html
+#l3794
+disk_cachemodes = "network=writeback"
+#l3850
+hw_disk_discard = unmap
+{%- endif %}
 {%- endif %}
 
 [neutron]
+{%- if controller.get('enabled', False) %}
 #l4135(only_controller)
 service_metadata_proxy=True
 #l4138(only_controller)
 {%- if server.get('networking', 'default') != "contrail" %}
 metadata_proxy_shared_secret={{ server.metadata.password }}
+{%- endif %}
 {%- endif %}
 
 #l4145
@@ -335,9 +468,11 @@ user_domain_name = default
 #i think: don't do that (depending on pillar of other formula, we don't do it anywhere else
 {% if pillar.neutron is defined %}
 #l4148
-{%- if pillar.neutron.get('server', {}).get('identity', {}).get('region', False) %}
-region_name= {{ pillar.neutron.server.identity.region }}
-{%- endif %}
+#FIXME mandatory option or not
+#https://github.com/openstack/kolla/blob/stable/mitaka/ansible/roles/nova/templates/nova.conf.j2#L104 https://bugs.launchpad.net/nova/+bug/1087735
+{#- if pillar.neutron.get('server', {}).get('identity', {}).get('region', False) #}
+region_name= {{ pillar.neutron.server.identity.region|default('RegionOne') }}
+{#- endif #}
 #l4199
 password={{ pillar.neutron.server.identity.password }}
 #l4213
@@ -348,9 +483,11 @@ username={{ pillar.neutron.server.identity.user }}
 
 
 #l4148
-{%- if server.get('network', {}).get('region', False) %}
-region_name= {{ server.network.region }}
-{%- endif %}
+#FIXME mandatory option or not
+#https://github.com/openstack/kolla/blob/stable/mitaka/ansible/roles/nova/templates/nova.conf.j2#L104 https://bugs.launchpad.net/nova/+bug/1087735
+{#- if server.get('network', {}).get('region', False) #}
+region_name= {{ server.network.identity.region|default('RegionOne') }}
+{#- endif #}
 #l4199
 password={{ server.network.identity.password }}
 #l4213
@@ -364,24 +501,26 @@ username={{ server.network.identity.user }}
 lock_path = /var/lib/nova/tmp
 
 
-#whole section !!!!FIXME !!! attention: (only_compute)
 [oslo_messaging_notifications]
+{%- if compute.get('enabled', False) %}
+#FIXME: please see config at http://docs.openstack.org/mitaka/install-guide-rdo/ceilometer-nova.html
 {%- if server.notification is defined %}
 #l4379
 driver = messagingv2
 {%- endif %}
+{%- endif %}
 
 [oslo_messaging_rabbit]
-{%- if server.message_queue.members is defined %}
 #l4457
-rabbit_hosts = {% for member in server.message_queue.members -%}
-                   {{ member.host }}:{{ member.get('port', 5672) }}
-                   {%- if not loop.last -%},{%- endif -%}
-               {%- endfor -%}
-{%- else %}
+{%- if server.get("message_queue", {}).get("members") %}
+rabbit_hosts = {% for member in server.message_queue.members %}{{ member.host }}:{{ member.port }}{% if not loop.last %},{% endif %}{%- endfor %}
+{%- endif %}
 #l4447
+{%- if server.get("message_queue", {}).get("host") %}
 rabbit_host = {{ server.message_queue.host }}
+{%- endif %}
 #l4453
+{%- if server.get("message_queue", {}).get("host") %}
 rabbit_port = {{ server.message_queue.port }}
 {%- endif %}
 #l4465
@@ -392,12 +531,24 @@ rabbit_password = {{ server.message_queue.password }}
 rabbit_virtual_host = {{ server.message_queue.virtual_host }}
 
 #FIXMEseems to be in [default] section which must be wrong #l2044
-rpc_conn_pool_size = 300
+#rpc_conn_pool_size = 300
 
 #l4480
-rabbit_retry_interval = 1
+# (default -> comment out)
+#rabbit_retry_interval = 1
 #l4485
-rabbit_retry_backoff = 2
+# (default -> comment out)
+#rabbit_retry_backoff = 2
+
+#l4503
+{%- if server.get("message_queue", {}).get("ha_queues") %}
+rabbit_ha_queues = {{ server.message_queue.ha_queues }}
+{%- endif %}
+#l4518
+heartbeat_timeout_threshold = {{ server.message_queue.heartbeat_timeout_threshold|default('60') }}
+#l4522
+heartbeat_rate = {{ server.message_queue.heartbeat_rate|default('2') }}
+
 
 [spice]
 #l4850
@@ -406,12 +557,14 @@ html5proxy_base_url = {{ server.vncproxy_url }}/spice_auto.html
 enabled = false
 
 [vnc]
+#according to https://ask.openstack.org/en/question/67409/does-it-make-sense-to-define-a-vnc-server-in-an-openstack-controller-node/
+#therefor let's try to enable this block on compute node only
+{%- if compute.get('enabled', False) %}
 #l5374
 enabled = true
 #l5397
 keymap = {{ server.get('vnc_keymap', 'en-us') }}
 
-#according to https://ask.openstack.org/en/question/67409/does-it-make-sense-to-define-a-vnc-server-in-an-openstack-controller-node/
 #only needed on compute node
 #l5416
 vncserver_listen={{ server.bind.private_address }}
@@ -425,3 +578,4 @@ novncproxy_host = 0.0.0.0
 novncproxy_port={{ server.bind.get('vnc_port', '6080') }}
 #l5521
 novncproxy_base_url = {{ server.vncproxy_url }}/vnc_auto.html
+{%- endif %}

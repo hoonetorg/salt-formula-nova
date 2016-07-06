@@ -191,9 +191,6 @@ debug = False
 #(seems to be default -> comment out)
 #log_dir = /var/log/nova
 
-#l2044
-rpc_conn_pool_size = 300
-
 #l2075
 #Only supported by impl_zmq, but we have rabbit
 #rpc_cast_timeout = 30
@@ -253,7 +250,7 @@ notify_on_state_change = vm_and_task_state
 #(only_controller)
 #deprecated in favor of [neutron]:metadata_proxy_shared_secret
 #{%- if server.get('networking', 'default') != "contrail" %}
-#neutron_metadata_proxy_shared_secret={{ server.metadata.password }}
+#neutron_metadata_proxy_shared_secret={# server.metadata.password #}
 #{%- endif %}
 #(only_compute)
 #deprecated in favor of [neutron]:timeout
@@ -530,8 +527,8 @@ rabbit_password = {{ server.message_queue.password }}
 #l4477
 rabbit_virtual_host = {{ server.message_queue.virtual_host }}
 
-#FIXMEseems to be in [default] section which must be wrong #l2044
-#rpc_conn_pool_size = 300
+#is deprecated,wrong in  [default] section in #l2044, must be here
+rpc_conn_pool_size = 300
 
 #l4480
 # (default -> comment out)
@@ -573,7 +570,7 @@ vncserver_proxyclient_address={{ server.bind.private_address }}
 
 
 #l5466(only_controller)
-novncproxy_host = 0.0.0.0
+novncproxy_host = {{ server.bind.private_address }}
 #l5494
 novncproxy_port={{ server.bind.get('vnc_port', '6080') }}
 #l5521

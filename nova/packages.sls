@@ -3,7 +3,7 @@
 
 {%- set pkgs = [] %}
 
-{%- if controller.enabled %}
+{%- if controller.get('enabled', False) %}
   {%- set pkgs = pkgs + controller.pkgs %}
   {%- if controller.get('networking', 'default') == "contrail" and controller.version == "juno" %}
     {%- set pkgs = pkgs + ['contrail-nova-driver', 'contrail-nova-networkapi'] %}
@@ -23,7 +23,7 @@ nova_packages__consoleproxy_debconf:
 
 {%- endif %}
 
-{%- if compute.enabled %}
+{%- if compute.get('enabled', False) %}
   {%- set pkgs = pkgs + compute.pkgs %}
   {%- if compute.ceph is defined %}
     {%- set pkgs = pkgs + [ 'ceph-common' ] %}

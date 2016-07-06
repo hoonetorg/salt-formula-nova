@@ -1,14 +1,22 @@
 {% from "nova/map.jinja" import controller with context %}
 {%- from "nova/map.jinja" import compute with context %}
 
-{%- if controller.enabled %}
+{%- set server = {} %}
+{%- if controller.get('enabled', False) %}
+  {%- do server.update(controller) %}
+{%- endif %}
+{%- if compute.get('enabled', False) %}
+  {%- do server.update(compute) %}
+{%- endif %}
+#{# server|json#}
 
 nova_configure__/etc/nova/nova.conf:
   file.managed:
   - name: /etc/nova/nova.conf
-  - source: salt://nova/files/{{ controller.version }}/nova.conf.{{ grains.os_family }}
+  - source: salt://nova/files/{{ server.version }}/nova.conf.{{ grains.os_family }}
   - template: jinja
 
+{%- if controller.get('enabled', False) %}
 nova_configure__/etc/nova/api-paste.ini:
   file.managed:
   - name: /etc/nova/api-paste.ini
@@ -26,7 +34,7 @@ nova_controller__syncdb:
     - file: nova_configure__/etc/nova/nova.conf
 
 {%- endif %}
-{%- if compute.enabled %}
+{%- if compute.get('enabled', False) %}
 
 {%- if compute.vm_swappiness is defined %}
 vm.swappiness:
@@ -34,11 +42,11 @@ vm.swappiness:
   - value: {{ compute.vm_swappiness }}
 {%- endif %}
 
-nova_configure__/var/log/nova:
-  file.directory:
-  - name: /var/log/nova
-  - mode: {{ compute.log_dir_perms|default('0750') }}
-  - user: nova
-  - group: nova
-
+#nova_configure__/var/log/nova:
+#  file.directory:
+#  - name: /var/log/nova
+#  - mode: {{ compute.log_dir_perms|default('0750') }}
+#  - user: nova
+#  - group: nova
+#
 {%- endif %}

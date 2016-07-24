@@ -44,12 +44,12 @@
 
 {% set os_controller = salt['grains.filter_by']({
     'Debian': {
-        'pkgs': ['nova-novncproxy', 'novnc', 'nova-api', 'nova-ajax-console-proxy', 'nova-cert', 'nova-conductor', 'nova-consoleauth', 'nova-doc', 'nova-scheduler', 'python-novaclient', 'python-memcache'],
+        'pkgs': ['nova-novncproxy', 'novnc', 'nova-api', 'nova-ajax-console-proxy', 'nova-cert', 'nova-conductor', 'nova-consoleauth', 'nova-doc', 'nova-scheduler', 'python-novaclient', 'python-memcache', 'python-openstackclient'],
         'services': ['nova-api', 'nova-cert', 'nova-consoleauth', 'nova-scheduler', 'nova-conductor', 'nova-novncproxy'],
         'debug': false,
     },
     'RedHat': {
-        'pkgs': ['openstack-nova-novncproxy', 'python-nova', 'openstack-nova-api', 'openstack-nova-console', 'openstack-nova-scheduler', 'python-novaclient', 'openstack-nova-common', 'openstack-nova-conductor', 'openstack-nova-cert'],
+        'pkgs': ['openstack-nova-novncproxy', 'python-nova', 'openstack-nova-api', 'openstack-nova-console', 'openstack-nova-scheduler', 'python-novaclient', 'openstack-nova-common', 'openstack-nova-conductor', 'openstack-nova-cert', 'python-memcached', 'python-openstackclient'],
         'services': ['openstack-nova-api', 'openstack-nova-cert', 'openstack-nova-consoleauth', 'openstack-nova-scheduler', 'openstack-nova-conductor', 'openstack-nova-novncproxy'],
         'debug': false,
     },
@@ -65,7 +65,7 @@
 #        'heal_instance_info_cache_interval': '60',
 {% set os_compute = salt['grains.filter_by']({
     'Debian': {
-        'pkgs': ['nova-compute-kvm', 'python-novaclient', 'pm-utils', 'sysfsutils', 'sg3-utils', 'libvirt-bin', 'python-memcache', 'qemu-kvm','python-guestfs'],
+        'pkgs': ['nova-compute-kvm', 'python-novaclient', 'pm-utils', 'sysfsutils', 'sg3-utils', 'libvirt-bin', 'python-memcache', 'python-openstackclient', 'qemu-kvm','python-guestfs'],
         'services': ['nova-compute'],
         'libvirt_config': 'libvirtd.conf',
         'libvirt_service': 'libvirtd',
@@ -73,7 +73,7 @@
         'debug': false,
     },
     'RedHat': {
-        'pkgs': ['openstack-nova-compute', 'python-novaclient', 'python-nova', 'sysfsutils', 'sg3_utils'],
+        'pkgs': ['openstack-nova-compute', 'python-novaclient', 'python-nova', 'python-memcached', 'python-openstackclient', 'sysfsutils', 'sg3_utils'],
         'services': ['openstack-nova-compute'],
         'libvirt_config': 'libvirtd.conf',
         'libvirt_bin': '/etc/sysconfig/libvirtd',

@@ -227,16 +227,16 @@
 #       user = "+0"     # Super user (uid=0)
 #       user = "100"    # A user named "100" or a user with uid=100
 #
-#user = "root"
+user = "nova"
 
 # The group for QEMU processes run by the system instance. It can be
 # specified in a similar way to user.
-#group = "root"
+group = "nova"
 
 # Whether libvirt should dynamically change file ownership
 # to match the configured user/group above. Defaults to 1.
 # Set to 0 to disable file ownership changes.
-#dynamic_ownership = 1
+dynamic_ownership = 1
 
 
 # What cgroup controllers to make use of with QEMU guests

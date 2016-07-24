@@ -99,6 +99,7 @@ unix_sock_group = "{{user.group.name_virt}}"
 # Default allows any user. If setting group ownership, you may want to
 # restrict this too.
 #unix_sock_ro_perms = "0777"
+unix_sock_ro_perms = "0777"
 
 # Set the UNIX socket permissions for the R/W socket. This is used
 # for full management of VMs

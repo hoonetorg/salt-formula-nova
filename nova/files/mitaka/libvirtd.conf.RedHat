@@ -1,3 +1,4 @@
+{%- from "nova/map.jinja" import user with context -%}
 # Master libvirt daemon configuration file
 #
 # For further information consult http://libvirt.org/format.html
@@ -90,7 +91,7 @@ listen_tcp = 1
 #
 # This is restricted to 'root' by default.
 #unix_sock_group = "libvirt"
-unix_sock_group = "libvirt"
+unix_sock_group = "{{user.group.name_virt}}"
 
 # Set the UNIX socket permissions for the R/O socket. This is used
 # for monitoring VM status only

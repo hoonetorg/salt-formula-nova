@@ -178,11 +178,7 @@ image_cache_manager_interval = 0
 {%- endif %}
 
 #l1949
-{%- if server.debug %}
-debug = True
-{%- else %}
-debug = False
-{%- endif %}
+debug = {{server.debug|default('false')}}
 
 #l1955(Deprecated)FIXME
 #verbose = True

@@ -1,3 +1,4 @@
+{% from "nova/map.jinja" import user with context %}
 {% from "nova/map.jinja" import controller with context %}
 {%- from "nova/map.jinja" import compute with context %}
 
@@ -30,6 +31,8 @@ nova_controller__syncdb:
     {%- if controller.version == "mitaka" %}
     - nova-manage api_db sync
     {%- endif %}
+  - user: {{user.user.name}}
+  - group: {{user.group.name}}
   - require:
     - file: nova_configure__/etc/nova/nova.conf
 

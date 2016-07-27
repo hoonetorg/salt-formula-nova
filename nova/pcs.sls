@@ -61,7 +61,7 @@ nova_pcs__cib_pushed_{{pcs.nova_cib}}:
     - cibname: {{pcs.nova_cib}}
 {% endif %}
 
-keytone_pcs__empty_sls_prevent_error:
+nova_pcs__empty_sls_prevent_error:
   cmd.run:
     - name: true
     - unless: true

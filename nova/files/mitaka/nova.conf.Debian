@@ -487,7 +487,8 @@ password={{ server.network.identity.password }}
 project_name={{ server.network.identity.tenant }}
 #l4239
 username={{ server.network.identity.user }}
-{%- endif %}(only_controller)
+{%- endif %}
+#(only_controller)
 
 [oslo_concurrency]
 #l4296

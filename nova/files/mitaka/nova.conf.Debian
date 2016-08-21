@@ -202,15 +202,14 @@ debug = {{server.debug|default('false')}}
 #l2117(only_controller) -> according to official docs on compute and controller
 rpc_backend = rabbit
 
-#whole if clause: (only_compute)
-#https://www.ibm.com/support/knowledgecenter/SS4KMC_2.3.0/com.ibm.sco.doc_2.3/TUAM/com.ibm.sccm.doc/admin_win_dc/r_configuring_openstack_nova.html
-#has probably to do with oslo_messaging_notifications:driver and that one needs pillar server.notification FIXME - but this one needs pillar.ceilometer
+#has probably to do with oslo_messaging_notifications:driver 
+#http://docs.openstack.org/mitaka/install-guide-rdo/ceilometer-nova.html
 {%- if compute.get('enabled', False) %}
-  {% if pillar.ceilometer is defined %}
+{%- if server.notification is defined %}
 instance_usage_audit = True
 instance_usage_audit_period = hour
 notify_on_state_change = vm_and_task_state
-  {%- endif %}
+{%- endif %}
 {%- endif %}
 
 
@@ -455,40 +454,14 @@ timeout = 300
 #l4232
 user_domain_name = default
 
-
-#whole if clause until else FIXME: (only_controller)
-#controller has probably neutron pillar
-#i think: don't do that (depending on pillar of other formula, we don't do it anywhere else
-{% if pillar.neutron is defined %}
 #l4148
-#FIXME mandatory option or not
-#https://github.com/openstack/kolla/blob/stable/mitaka/ansible/roles/nova/templates/nova.conf.j2#L104 https://bugs.launchpad.net/nova/+bug/1087735
-{#- if pillar.neutron.get('server', {}).get('identity', {}).get('region', False) #}
-region_name= {{ pillar.neutron.server.identity.region|default('RegionOne') }}
-{#- endif #}
-#l4199
-password={{ pillar.neutron.server.identity.password }}
-#l4213
-project_name={{ pillar.neutron.server.identity.tenant }}
-#l4239
-username={{ pillar.neutron.server.identity.user }}
-{%- else %}
-
-
-#l4148
-#FIXME mandatory option or not
-#https://github.com/openstack/kolla/blob/stable/mitaka/ansible/roles/nova/templates/nova.conf.j2#L104 https://bugs.launchpad.net/nova/+bug/1087735
-{#- if server.get('network', {}).get('region', False) #}
 region_name= {{ server.network.identity.region|default('RegionOne') }}
-{#- endif #}
 #l4199
 password={{ server.network.identity.password }}
 #l4213
 project_name={{ server.network.identity.tenant }}
 #l4239
 username={{ server.network.identity.user }}
-{%- endif %}
-#(only_controller)
 
 [oslo_concurrency]
 #l4296
@@ -497,7 +470,6 @@ lock_path = /var/lib/nova/tmp
 
 [oslo_messaging_notifications]
 {%- if compute.get('enabled', False) %}
-#FIXME: please see config at http://docs.openstack.org/mitaka/install-guide-rdo/ceilometer-nova.html
 {%- if server.notification is defined %}
 #l4379
 driver = messagingv2

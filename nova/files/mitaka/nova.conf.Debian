@@ -202,10 +202,10 @@ debug = {{server.debug|default('false')}}
 #l2117(only_controller) -> according to official docs on compute and controller
 rpc_backend = rabbit
 
+{%- if compute.get('enabled', False) %}
+{%- if server.get('notification', False) %}
 #has probably to do with oslo_messaging_notifications:driver 
 #http://docs.openstack.org/mitaka/install-guide-rdo/ceilometer-nova.html
-{%- if compute.get('enabled', False) %}
-{%- if server.notification is defined %}
 instance_usage_audit = True
 instance_usage_audit_period = hour
 notify_on_state_change = vm_and_task_state
@@ -470,7 +470,7 @@ lock_path = /var/lib/nova/tmp
 
 [oslo_messaging_notifications]
 {%- if compute.get('enabled', False) %}
-{%- if server.notification is defined %}
+{%- if server.get('notification', False) %}
 #l4379
 driver = messagingv2
 {%- endif %}

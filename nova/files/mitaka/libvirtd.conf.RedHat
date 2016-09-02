@@ -1,4 +1,5 @@
 {%- from "nova/map.jinja" import user with context -%}
+{%- from "nova/map.jinja" import compute with context -%}
 # Master libvirt daemon configuration file
 #
 # For further information consult http://libvirt.org/format.html
@@ -429,6 +430,9 @@ auth_tcp = "none"
 # it with the output of the 'uuidgen' command and then
 # uncomment this entry
 #host_uuid = "00000000-0000-0000-0000-000000000000"
+{%- if compute.get('host_id', False) %}
+host_uuid = "{{compute.host_id}}"
+{%- endif %}
 
 ###################################################################
 # Keepalive protocol:
